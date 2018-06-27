@@ -14,8 +14,7 @@
 #include <opencog/atoms/base/ClassServer.h>
 #include <opencog/atoms/base/ProtoAtom.h>
 #include <opencog/truthvalue/AttentionValue.h>
-#include <opencog/truthvalue/CountTruthValue.h>
-#include <opencog/truthvalue/TruthValue.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 #include <opencog/atomutils/FindUtils.h>
 #include <opencog/guile/SchemeSmob.h>
 
@@ -109,29 +108,10 @@ SCM SchemeSmob::ss_tv (SCM satom)
 SCM SchemeSmob::ss_set_tv (SCM satom, SCM stv)
 {
 	Handle h = verify_handle(satom, "cog-set-tv!");
-	TruthValuePtr tv = verify_tv(stv, "cog-set-tv!", 2);
+	DistributionalValuePtr tv = verify_tv(stv, "cog-set-tv!", 2);
 
 	h->setTruthValue(tv);
 	scm_remember_upto_here_1(stv);
-	return satom;
-}
-
-// Increment the count, keeping mean and confidence as-is.
-// Converts existing truth value to a CountTruthValue.
-SCM SchemeSmob::ss_inc_count (SCM satom, SCM scnt)
-{
-	Handle h = verify_handle(satom, "cog-inc-count!");
-	double cnt = verify_real(scnt, "cog-inc-count!", 2);
-
-	TruthValuePtr tv = h->getTruthValue();
-	if (COUNT_TRUTH_VALUE == tv->get_type())
-	{
-		cnt += tv->get_count();
-	}
-	tv = CountTruthValue::createTV(
-		tv->get_mean(), tv->get_confidence(), cnt);
-
-	h->setTruthValue(tv);
 	return satom;
 }
 

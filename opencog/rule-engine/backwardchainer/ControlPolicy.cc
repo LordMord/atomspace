@@ -176,7 +176,7 @@ HandleTVMap ControlPolicy::expansion_success_tvs(
 			double cpx_penalty = _ure_config.get_mm_complexity_penalty(),
 				compressiveness = _ure_config.get_mm_compressiveness();
 			success_tvs[rule] = MixtureModel(active_ctrl_rules,
-			                                 cpx_penalty, compressiveness)();
+			                                 cpx_penalty, compressiveness)(_query_as);
 		}
 	}
 
@@ -492,7 +492,7 @@ Handle ControlPolicy::mk_pattern_var(int i)
 	return an(VARIABLE_NODE, name);
 }
 
-double ControlPolicy::get_actual_mean(TruthValuePtr tv) const
+double ControlPolicy::get_actual_mean(DistributionalValuePtr tv) const
 {
 	return BetaDistribution(tv).mean();
 }

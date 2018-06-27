@@ -24,15 +24,13 @@
 #include "BetaDistribution.h"
 #include "../URELogger.h"
 
-#include <opencog/truthvalue/SimpleTruthValue.h>
-
 namespace opencog {
 
-BetaDistribution::BetaDistribution(const TruthValuePtr& tv,
+BetaDistribution::BetaDistribution(const DistributionalValuePtr& tv,
                                    double p_alpha, double p_beta)
 	// TODO should be replaced by tv->get_mode() once implemented
-	: BetaDistribution(tv->get_mean() * tv->get_count(),
-	                   tv->get_count(), p_alpha, p_beta) {}
+	: BetaDistribution(tv->get_fstord_mean() * tv->total_count(),
+	                   tv->total_count(), p_alpha, p_beta) {}
 
 BetaDistribution::BetaDistribution(double pos_count, double count,
                                    double p_alpha, double p_beta)
@@ -84,11 +82,11 @@ std::string BetaDistribution::to_string(const std::string& indent) const
 	return ss.str();
 }
 
-BetaDistribution mk_beta_distribution(const TruthValuePtr& tv) {
+BetaDistribution mk_beta_distribution(const DistributionalValuePtr& tv) {
 	return BetaDistribution(tv);
 }
 
-TruthValuePtr mk_stv(double mean, double variance,
+DistributionalValuePtr mk_stv(AtomSpace* as,double mean, double variance,
                      double prior_alpha, double prior_beta)
 {
 	using boost::math::beta_distribution;
@@ -100,7 +98,7 @@ TruthValuePtr mk_stv(double mean, double variance,
 	// beta == prior_beta + count - pos_count
 	double count = alpha + beta - prior_alpha - prior_beta;
 	count = std::max(0.1, count); // Hack to avoid non-sensical TV
-	double confidence = count / (count + SimpleTruthValue::DEFAULT_K),
+	double confidence = count / (count + DistributionalValue::DEFAULT_K),
 		mode = 1;               // default strength if confidence is null
 
 	if (1 < alpha and 1 < beta)
@@ -123,7 +121,7 @@ TruthValuePtr mk_stv(double mean, double variance,
 
 	// The strength is in fact the mode, this should be corrected once
 	// TruthValue is reworked
-	return SimpleTruthValue::createTV(mode, confidence);
+    return std::make_shared<const DistributionalValue>(as,mode,confidence);
 }
 
 std::string oc_to_string(const BetaDistribution& bd, const std::string& indent)

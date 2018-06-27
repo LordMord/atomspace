@@ -198,8 +198,8 @@ bool AtomSpace::compare_atomspaces(const AtomSpace& space_first,
         // Check the truth values...
         if (check_truth_values)
         {
-            TruthValuePtr truth_first = atom_first->getTruthValue();
-            TruthValuePtr truth_second = atom_second->getTruthValue();
+            DistributionalValuePtr truth_first = atom_first->getTruthValue();
+            DistributionalValuePtr truth_second = atom_second->getTruthValue();
             if (*truth_first != *truth_second)
             {
                 if (emit_diagnostics)
@@ -359,7 +359,7 @@ Handle AtomSpace::fetch_atom(const Handle& h)
     if (hv and hv != hc)
     {
         hc->copyValues(hv);
-        TruthValuePtr tv = hv->getTruthValue();
+        DistributionalValuePtr tv = hv->getTruthValue();
         hc->setTruthValue(tv);
     }
 

@@ -18,7 +18,7 @@
 #include <opencog/atoms/base/Atom.h>
 #include <opencog/atoms/base/Handle.h>
 #include <opencog/eval/GenericEval.h>
-#include <opencog/truthvalue/TruthValue.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 
 namespace opencog {
 /** \addtogroup grp_smob
@@ -171,8 +171,8 @@ class SchemeEval : public GenericEval
 		Handle eval_h(const std::stringstream& ss) { return eval_h(ss.str()); }
 
 		// Evaluate expression, returning TV.
-		TruthValuePtr eval_tv(const std::string& str) { return TruthValueCast(eval_v(str)); }
-		TruthValuePtr eval_tv(const std::stringstream& ss) { return eval_tv(ss.str()); }
+		DistributionalValuePtr eval_tv(const std::string& str) { return TruthValueCast(eval_v(str)); }
+		DistributionalValuePtr eval_tv(const std::stringstream& ss) { return eval_tv(ss.str()); }
 
 		// Evaluate expression, returning AtomSpace.
 		AtomSpace* eval_as(const std::string&);
@@ -181,7 +181,7 @@ class SchemeEval : public GenericEval
 		ProtoAtomPtr apply_v(const std::string& func, Handle varargs);
 		Handle apply(const std::string& func, Handle varargs) {
 			return HandleCast(apply_v(func, varargs)); }
-		TruthValuePtr apply_tv(const std::string& func, Handle varargs) {
+		DistributionalValuePtr apply_tv(const std::string& func, Handle varargs) {
 			return TruthValueCast(apply_v(func, varargs)); }
 
 		// Nested invocations

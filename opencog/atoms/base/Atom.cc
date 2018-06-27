@@ -107,14 +107,14 @@ static const Handle& truth_key(void)
 	return tk;
 }
 
-void Atom::setTruthValue(const TruthValuePtr& newTV)
+void Atom::setTruthValue(const DistributionalValuePtr& newTV)
 {
     if (nullptr == newTV) return;
 
     // We need to guarantee that the signal goes out with the
     // correct truth value.  That is, another setter could be changing
     // this, even as we are.  So make a copy, first.
-    TruthValuePtr oldTV(getTruthValue());
+    DistributionalValuePtr oldTV(getTruthValue());
 
     // If both old and new are e.g. DEFAULT_TV, then do nothing.
     if (oldTV.get() == newTV.get()) return;
@@ -131,10 +131,13 @@ void Atom::setTruthValue(const TruthValuePtr& newTV)
     }
 }
 
-TruthValuePtr Atom::getTruthValue() const
+DistributionalValuePtr Atom::getTruthValue() const
 {
     ProtoAtomPtr pap(getValue(truth_key()));
-    if (nullptr == pap) return TruthValue::DEFAULT_TV();
+    if (nullptr == pap)
+    {
+        return DistributionalValue::DEFAULT_TV(_atom_space);
+    }
     return TruthValueCast(pap);
 }
 

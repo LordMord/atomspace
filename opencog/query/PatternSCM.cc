@@ -82,7 +82,7 @@ PatternSCM::PatternSCM(void) :
 	ModuleWrap("opencog query")
 {}
 
-static TruthValuePtr do_satlink(AtomSpace* as, const Handle& hlink)
+static DistributionalValuePtr do_satlink(AtomSpace* as, const Handle& hlink)
 {
 	Handle plp(hlink);
 	// If not already a PatternLink, then WRAP it in a PattrnLink.

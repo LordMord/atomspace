@@ -36,7 +36,7 @@
 #include <opencog/util/sigslot.h>
 #include <opencog/atoms/base/Handle.h>
 #include <opencog/atoms/base/ProtoAtom.h>
-#include <opencog/truthvalue/TruthValue.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 
 class AtomUTest;
 
@@ -262,10 +262,10 @@ public:
     }
 
     /** Returns the TruthValue object of the atom. */
-    TruthValuePtr getTruthValue() const;
+    DistributionalValuePtr getTruthValue() const;
 
     //! Sets the TruthValue object of the atom.
-    void setTruthValue(const TruthValuePtr&);
+    void setTruthValue(const DistributionalValuePtr&);
 
     /// Associate `value` to `key` for this atom.
     void setValue(const Handle& key, const ProtoAtomPtr& value);

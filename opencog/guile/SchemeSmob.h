@@ -24,7 +24,7 @@
 #include <opencog/atoms/base/types.h>
 
 #include <opencog/truthvalue/AttentionValue.h>
-#include <opencog/truthvalue/TruthValue.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 
 #include <opencog/atomspace/AtomSpace.h>
 
@@ -75,13 +75,14 @@ private:
 	static SCM mark_misc(SCM);
 	static size_t free_misc(SCM);
 
+    static SCM scm_from_vector_double(const std::vector<double>&);
 	static SCM handle_to_scm(const Handle&);
 	static SCM protom_to_scm(const ProtoAtomPtr&);
-	static SCM tv_to_scm(const TruthValuePtr&);
+	static SCM tv_to_scm(const DistributionalValuePtr&);
 	static SCM av_to_scm(const AttentionValuePtr&);
 	static Handle scm_to_handle(SCM);
 	static ProtoAtomPtr scm_to_protom(SCM);
-	static TruthValuePtr scm_to_tv(SCM);
+	static DistributionalValuePtr scm_to_tv(SCM);
 
 	static std::vector<double> scm_to_float_list (SCM);
 	static std::vector<ProtoAtomPtr> scm_to_protom_list (SCM);
@@ -114,7 +115,6 @@ private:
 	// Property setters on atoms
 	static SCM ss_set_tv(SCM, SCM);
 	static SCM ss_set_value(SCM, SCM, SCM);
-	static SCM ss_inc_count(SCM, SCM);
 
 	// Atom properties
 	static SCM ss_name(SCM);
@@ -142,12 +142,7 @@ private:
 	static SCM ss_subtype_p(SCM, SCM);
 
 	// Truth values
-	static SCM ss_new_stv(SCM, SCM);
-	static SCM ss_new_ctv(SCM, SCM, SCM);
-	static SCM ss_new_itv(SCM, SCM, SCM);
-	static SCM ss_new_ptv(SCM, SCM, SCM);
-	static SCM ss_new_ftv(SCM, SCM);
-	static SCM ss_new_etv(SCM, SCM);
+	//static SCM ss_new_stv(SCM, SCM);
 	static SCM ss_tv_p(SCM);
 	static SCM tv_p(SCM, Type);
 	static SCM ss_stv_p(SCM);
@@ -157,11 +152,11 @@ private:
 	static SCM ss_ftv_p(SCM);
 	static SCM ss_etv_p(SCM);
 	static SCM ss_tv_get_value(SCM);
+	static SCM ss_tv_get_mode(SCM);
 	static SCM ss_tv_get_mean(SCM);
 	static SCM ss_tv_get_confidence(SCM);
 	static SCM ss_tv_get_count(SCM);
 	static SCM ss_tv_merge(SCM, SCM);
-	static SCM ss_tv_merge_hi_conf(SCM, SCM);
 
 	// Atom Spaces
 	static SCM ss_new_as(SCM);
@@ -192,7 +187,7 @@ private:
 	static std::string protom_to_string(SCM);
 	static std::string handle_to_string(const Handle&, int);
 	static std::string misc_to_string(SCM);
-	static TruthValuePtr get_tv_from_list(SCM);
+	static DistributionalValuePtr get_tv_from_list(SCM);
 	static AttentionValuePtr get_av_from_list(SCM);
 	static AtomSpace* get_as_from_list(SCM);
 
@@ -211,7 +206,7 @@ private:
 	static Type verify_atom_type(SCM, const char *, int pos = 1);
 	static Handle verify_handle(SCM, const char *, int pos = 1);
 	static ProtoAtomPtr verify_protom(SCM, const char *, int pos = 1);
-	static TruthValuePtr verify_tv(SCM, const char *, int pos = 1);
+	static DistributionalValuePtr verify_tv(SCM, const char *, int pos = 1);
 	static AttentionValuePtr verify_av(SCM, const char *, int pos = 1);
 	static HandleSeq verify_handle_list (SCM, const char *,
 	                                               int pos = 1);
@@ -247,7 +242,7 @@ public:
 	static std::string to_string(const Handle&);
 	static std::string as_to_string(const AtomSpace *);
 	static std::string av_to_string(const AttentionValuePtr&);
-	static std::string tv_to_string(const TruthValuePtr&);
+	static std::string tv_to_string(const DistributionalValuePtr&);
 };
 
 /** @}*/

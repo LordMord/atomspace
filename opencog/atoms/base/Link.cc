@@ -62,7 +62,7 @@ std::string Link::to_short_string(const std::string& indent) const
 
     answer << indent << "(" << classserver().getTypeName(_type);
 
-    if (not getTruthValue()->isDefaultTV())
+    if (not getTruthValue()->IsUniform())
         answer << " " << getTruthValue()->to_string();
     answer << "\n";
 
@@ -84,7 +84,7 @@ std::string Link::to_string(const std::string& indent) const
     answer += "(" + classserver().getTypeName(_type);
 
     // Print the TV only if its not the default.
-    if (not getTruthValue()->isDefaultTV())
+    if (not getTruthValue()->IsUniform())
         answer += " " + getTruthValue()->to_string();
 
     answer += "\n";

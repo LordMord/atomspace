@@ -36,7 +36,7 @@ static Handle ss_execute(AtomSpace* atomspace, const Handle& h)
 /**
  * cog-evaluate! evaluates an EvaluationLink with a GPN in it.
  */
-static TruthValuePtr ss_evaluate(AtomSpace* atomspace, const Handle& h)
+static DistributionalValuePtr ss_evaluate(AtomSpace* atomspace, const Handle& h)
 {
 	return EvaluationLink::do_evaluate(atomspace, h);
 }

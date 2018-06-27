@@ -10,7 +10,7 @@
 
 #include <opencog/atoms/base/Handle.h>
 #include <opencog/atoms/base/atom_types.h>
-#include <opencog/truthvalue/TruthValue.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 
 namespace opencog {
 
@@ -30,10 +30,10 @@ class FunctionWrap
 		Handle as_wrapper_h_h(Handle);
 		Handle as_wrapper_h_hz(Handle, size_t);
 
-		// These wrappers return a TruthValuePtr and abstract the
+		// These wrappers return a DistributionalValuePtr and abstract the
 		// atomspace away.
-		TruthValuePtr (*_pred_ah)(AtomSpace*, const Handle&);
-		TruthValuePtr as_wrapper_p_h(Handle);
+		DistributionalValuePtr (*_pred_ah)(AtomSpace*, const Handle&);
+		DistributionalValuePtr as_wrapper_p_h(Handle);
 
 		const char *_name;  // scheme name of the c++ function.
 	public:
@@ -41,7 +41,7 @@ class FunctionWrap
 		             const char*, const char*);
 		FunctionWrap(Handle (*)(AtomSpace*, const Handle&, size_t),
 		             const char*, const char*);
-		FunctionWrap(TruthValuePtr (*)(AtomSpace*, const Handle&),
+		FunctionWrap(DistributionalValuePtr (*)(AtomSpace*, const Handle&),
 		             const char*, const char*);
 };
 

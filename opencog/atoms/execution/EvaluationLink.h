@@ -40,20 +40,20 @@ public:
 	EvaluationLink(const Handle& schema, const Handle& args);
 	EvaluationLink(const Link& l);
 
-	TruthValuePtr evaluate(AtomSpace* as) {
+	DistributionalValuePtr evaluate(AtomSpace* as) {
 	    return do_evaluate(as, get_handle());
 	}
 
-	static TruthValuePtr do_evaluate(AtomSpace*, const Handle&,
+	static DistributionalValuePtr do_evaluate(AtomSpace*, const Handle&,
 	                                 bool silent=false);
-	static TruthValuePtr do_eval_scratch(AtomSpace* main,
+	static DistributionalValuePtr do_eval_scratch(AtomSpace* main,
 	                                     const Handle&,
 	                                     AtomSpace* scratch,
 	                                     bool silent=false);
-	static TruthValuePtr do_evaluate(AtomSpace*,
+	static DistributionalValuePtr do_evaluate(AtomSpace*,
 	                                 const HandleSeq& schema_and_args,
 	                                 bool silent=false);
-	static TruthValuePtr do_evaluate(AtomSpace*,
+	static DistributionalValuePtr do_evaluate(AtomSpace*,
 	                                 const Handle& schema, const Handle& args,
 	                                 bool silent=false);
 

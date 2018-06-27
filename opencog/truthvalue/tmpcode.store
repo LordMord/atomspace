@@ -1,0 +1,45 @@
+double GDTV::get_mean1()
+{
+    double mean = 0;
+
+    for (auto intervalWithCount : gdtv)
+    {
+        Interval interval     = std::get<0>(intervalWithCount);
+        double intervalMiddle = (std::get<0>(interval) + std::get<1>(interval))/2;
+        double intervalCount  = std::get<1>(intervalWithCount);
+        mean = mean + intervalMiddle * intervalCount;
+    }
+    return mean / get_count();
+}
+
+double GDTV::get_stddev1()
+{
+    double mean = get_mean1();
+    double sum = 0;
+
+    for (auto intervalWithCount : gdtv)
+    {
+        Interval interval     = std::get<0>(intervalWithCount);
+        double intervalMiddle = (std::get<0>(interval) + std::get<1>(interval))/2;
+        double intervalCount  = std::get<1>(intervalWithCount);
+        sum = sum + std::pow(mean - intervalMiddle,2) * intervalCount;
+    }
+    return mean;
+}
+
+Interval GDTV::get_mode1()
+{
+    Interval maxInterval;
+    double maxProb = 0;
+    UcGDTV ucGDTV = std::get<1>(gdtv[0]);
+
+    for (auto intervalWithCount : std::get<0>(ucGDTV))
+    {
+        if (maxProb <= std::get<1>(intervalWithCount))
+        {
+            maxInterval = std::get<0>(intervalWithCount);
+            maxProb = std::get<1>(intervalWithCount);
+        }
+    }
+    return maxInterval;
+}

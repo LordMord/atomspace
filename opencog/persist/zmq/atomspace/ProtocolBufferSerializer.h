@@ -32,13 +32,10 @@
 
 #include <opencog/atoms/base/Atom.h>
 #include <opencog/truthvalue/AttentionValue.h>
-#include <opencog/truthvalue/CountTruthValue.h>
 #include <opencog/atoms/base/Handle.h>
-#include <opencog/truthvalue/IndefiniteTruthValue.h>
 #include <opencog/atoms/base/Link.h>
 #include <opencog/atoms/base/Node.h>
-#include <opencog/truthvalue/SimpleTruthValue.h>
-#include <opencog/truthvalue/TruthValue.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 #include <opencog/atoms/base/types.h>
 #include "opencog/persist/zmq/atomspace/ZMQMessages.pb.h"
 
@@ -71,20 +68,7 @@ class ProtocolBufferSerializer {
 //    static void deserializeNode(const ZMQAtomMessage& atomMessage, Node& node);
 //    static void serializeNode(Node& node, ZMQAtomMessage *atomMessage);
 
-    static CountTruthValuePtr deserializeCountTruthValue(
-            const ZMQSingleTruthValueMessage& singleTruthValue);
-    static void serializeCountTruthValue(
-            CountTruthValue& tv, ZMQTruthValueMessage* truthValueMessage);
-    static IndefiniteTruthValuePtr deserializeIndefiniteTruthValue(
-            const ZMQSingleTruthValueMessage& singleTruthValue);
-    static void serializeIndefiniteTruthValue(
-            IndefiniteTruthValue& tv, ZMQTruthValueMessage* truthValueMessage);
-    static SimpleTruthValuePtr deserializeSimpleTruthValue(
-            const ZMQSingleTruthValueMessage& singleTruthValue);
-    static void serializeSimpleTruthValue(
-            SimpleTruthValue& tv, ZMQTruthValueMessage* truthValueMessage);
-
-    static TruthValuePtr deserialize(
+    static DistributionalValuePtr deserialize(
             const ZMQSingleTruthValueMessage& singleTruthValueMessage);
 
 public:
@@ -94,7 +78,7 @@ public:
     static AtomPtr deserialize(const ZMQAtomMessage& atomMessage);
 //    static void serialize(Atom &atom, ZMQAtomMessage* atomMessage);
 
-    static TruthValuePtr deserialize(const ZMQTruthValueMessage& truthValueMessage);
+    static DistributionalValuePtr deserialize(const ZMQTruthValueMessage& truthValueMessage);
     static void serialize(TruthValue &tv, ZMQTruthValueMessage* truthValueMessage);
 };
 

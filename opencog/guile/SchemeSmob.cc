@@ -308,7 +308,6 @@ void SchemeSmob::register_procs()
 
 	// TV property setters on atoms
 	register_proc("cog-set-tv!",           2, 0, 0, C(ss_set_tv));
-	register_proc("cog-inc-count!",        2, 0, 0, C(ss_inc_count));
 
 	// property getters on atoms
 	register_proc("cog-name",              1, 0, 0, C(ss_name));
@@ -325,12 +324,7 @@ void SchemeSmob::register_procs()
 	register_proc("cog-as",                1, 0, 0, C(ss_as));
 
 	// Truth-values
-	register_proc("cog-new-stv",           2, 0, 0, C(ss_new_stv));
-	register_proc("cog-new-ctv",           3, 0, 0, C(ss_new_ctv));
-	register_proc("cog-new-itv",           3, 0, 0, C(ss_new_itv));
-	register_proc("cog-new-ptv",           3, 0, 0, C(ss_new_ptv));
-	register_proc("cog-new-ftv",           2, 0, 0, C(ss_new_ftv));
-	register_proc("cog-new-etv",           2, 0, 0, C(ss_new_etv));
+	//register_proc("cog-new-stv",           2, 0, 0, C(ss_new_stv));
 	register_proc("cog-tv?",               1, 0, 0, C(ss_tv_p));
 	register_proc("cog-stv?",              1, 0, 0, C(ss_stv_p));
 	register_proc("cog-ctv?",              1, 0, 0, C(ss_ctv_p));
@@ -340,10 +334,10 @@ void SchemeSmob::register_procs()
 	register_proc("cog-etv?",              1, 0, 0, C(ss_etv_p));
 	register_proc("cog-tv->alist",         1, 0, 0, C(ss_tv_get_value));
 	register_proc("cog-tv-mean",           1, 0, 0, C(ss_tv_get_mean));
+	register_proc("cog-tv-mode",           1, 0, 0, C(ss_tv_get_mode));
 	register_proc("cog-tv-confidence",     1, 0, 0, C(ss_tv_get_confidence));
 	register_proc("cog-tv-count",          1, 0, 0, C(ss_tv_get_count));
 	register_proc("cog-tv-merge",          2, 0, 0, C(ss_tv_merge));
-	register_proc("cog-tv-merge-hi-conf",  2, 0, 0, C(ss_tv_merge_hi_conf));
 
 	// Atom Spaces
 	register_proc("cog-new-atomspace",     0, 1, 0, C(ss_new_as));
@@ -383,4 +377,19 @@ void SchemeSmob::register_proc(const char* name, int req, int opt, int rst, scm_
 	scm_c_export(name, NULL);
 }
 
+SCM scm_from_vector_double(const std::vector<double>& vd)
+	{
+		SCM rc;
+		auto it = vd.begin();
+		if (it != vd.end())
+        {
+			rc = scm_list_1(scm_from_double(*it));
+		    ++it;
+            for ( ; it != vd.end(); ++it)
+            {
+                rc = scm_cons(scm_from_double(*it), rc);
+            }
+        }
+		return rc;
+	}
 /* ===================== END OF FILE ============================ */

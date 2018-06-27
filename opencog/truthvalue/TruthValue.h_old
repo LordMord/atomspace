@@ -165,6 +165,7 @@ public:
     virtual bool isDefinedTV() const;
 };
 
+/*
 static inline TruthValuePtr TruthValueCast(const ProtoAtomPtr& pa)
     { return std::dynamic_pointer_cast<const TruthValue>(pa); }
 
@@ -179,6 +180,7 @@ static inline ProtoAtomPtr ProtoAtomCast(const TruthValuePtr& tv)
     // This works...
     return std::shared_ptr<ProtoAtom>(tv, (ProtoAtom*) tv.get());
 }
+*/
 
 // Debugging helpers see
 // http://wiki.opencog.org/w/Development_standards#Print_OpenCog_Objects

@@ -24,7 +24,8 @@
 #define OPENCOG_MIXTUREMODEL_H_
 
 #include <opencog/atoms/base/Handle.h>
-#include <opencog/truthvalue/TruthValue.h>
+#include <opencog/atomspace/AtomSpace.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 
 namespace opencog
 {
@@ -104,7 +105,7 @@ public:
 	 * - Di are the missing data of model Mi
 	 * - P(Li + K(Di)) is the prior of model Mi + perfect fictive completion
 	 */
-	TruthValuePtr operator()() const;
+	DistributionalValuePtr operator()(AtomSpace * as) const;
 
 	/**
 	 * Given a list of TVs and a list of associated weights, that do
@@ -115,8 +116,9 @@ public:
 	 * will probably badly reflect the actually distribution, but
 	 * should at least have the same mean and variance.
 	 */
-	TruthValuePtr weighted_average(const std::vector<TruthValuePtr>& tvs,
-	                               const std::vector<double>& weights) const;
+	DistributionalValuePtr weighted_average(AtomSpace * as,
+                            const std::vector<DistributionalValuePtr>& tvs,
+	                        const std::vector<double>& weights) const;
 
 	/**
 	 * Calculate the alpha and beta parameters of the model's TV, and

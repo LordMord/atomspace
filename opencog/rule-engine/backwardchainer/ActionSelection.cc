@@ -25,6 +25,7 @@
 
 #include <opencog/util/Logger.h>
 #include <opencog/util/oc_assert.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 
 namespace opencog {
 
@@ -104,7 +105,7 @@ std::string oc_to_string(const HandleTVMap& h2tv, const std::string& indent)
 		ss << indent << "atom[" << i << "]:" << std::endl
 		   << oc_to_string(htv.first, indent + OC_TO_STRING_INDENT);
 		ss << indent << "tv[" << i << "]:"
-		   << oc_to_string(htv.second) << std::endl;
+		   << htv.second->to_string("") << std::endl;
 	}
 	return ss.str();
 }

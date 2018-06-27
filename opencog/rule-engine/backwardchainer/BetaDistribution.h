@@ -25,7 +25,7 @@
 
 #include <boost/math/distributions/beta.hpp>
 
-#include <opencog/truthvalue/TruthValue.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 
 namespace opencog
 {
@@ -42,7 +42,7 @@ public:
 	 * Construct a BetaDistribution given a TV and a beta-distribution
 	 * prior with parameters (alpha, beta).
 	 */
-	BetaDistribution(const TruthValuePtr& tv,
+	BetaDistribution(const DistributionalValuePtr& tv,
 	                 double prior_alpha=1.0, double prior_beta=1.0);
 	BetaDistribution(double pos_count, double count,
 	                 double prior_alpha=1.0, double prior_beta=1.0);
@@ -93,9 +93,9 @@ private:
 };
 
 // Helpers
-BetaDistribution mk_beta_distribution(const TruthValuePtr& tv);
+BetaDistribution mk_beta_distribution(const DistributionalValuePtr& tv);
 
-TruthValuePtr mk_stv(double mean, double variance,
+DistributionalValuePtr mk_dtv(AtomSpace* as,double mean, double variance,
                      double prior_alpha=1.0, double prior_beta=1.0);
 
 // Debugging helpers see

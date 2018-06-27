@@ -4,8 +4,7 @@
 #include <opencog/util/random.h>
 
 #include <opencog/atoms/base/types.h>
-#include <opencog/truthvalue/SimpleTruthValue.h>
-#include <opencog/truthvalue/TruthValue.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 
 #include "RandomAtomGenerator.h"
 
@@ -79,8 +78,9 @@ void RandomAtomGenerator::set_truth_value(Handle& atom)
     if (_random_generator->randfloat() > _chance_of_default_tv) {
         float strength = _random_generator->randfloat();
         float confidence = _random_generator->randfloat();
-        TruthValuePtr stv = SimpleTruthValue::createTV(strength, confidence);
-        atom->setTruthValue(stv);
+        Handle h =_atomspace->add_node(NUMBER_NODE,std::to_string(strength));
+        DistributionalValuePtr tv = DistributionalValue::UniformDistributionalValue(h,confidence);
+        atom->setTruthValue(tv);
     }
 }
 

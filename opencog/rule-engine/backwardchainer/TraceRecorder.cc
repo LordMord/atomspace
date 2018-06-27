@@ -76,14 +76,14 @@ HandleSeqSet TraceRecorder::traces(const Handle& fcs)
 
 void TraceRecorder::target(const Handle& target)
 {
-	add_evaluation(_target_predicate, target, TruthValue::TRUE_TV());
+	add_evaluation(_target_predicate, target, DistributionalValue::TRUE_TV(_trace_as));
 }
 
 void TraceRecorder::andbit(const AndBIT& andbit)
 {
 	add_evaluation(_andbit_predicate,
 	               dont_exec(andbit.fcs),
-	               TruthValue::TRUE_TV());
+	               DistributionalValue::TRUE_TV(_trace_as));
 }
 
 void TraceRecorder::expansion(const Handle& andbit_fcs, const Handle& bitleaf_body,
@@ -92,7 +92,7 @@ void TraceRecorder::expansion(const Handle& andbit_fcs, const Handle& bitleaf_bo
 	add_execution(_expand_andbit_schema,
 	              dont_exec(andbit_fcs), bitleaf_body,
 	              dont_exec(rule.get_alias()),
-	              dont_exec(new_andbit.fcs), TruthValue::TRUE_TV());
+	              dont_exec(new_andbit.fcs), DistributionalValue::TRUE_TV(_trace_as));
 }
 
 void TraceRecorder::proof(const Handle& andbit_fcs, const Handle& target_result)
@@ -112,7 +112,7 @@ Handle TraceRecorder::dont_exec(const Handle& h)
 
 Handle TraceRecorder::add_execution(const Handle& schema,
                                     const Handle& input, const Handle& output,
-                                    TruthValuePtr tv)
+                                    DistributionalValuePtr tv)
 {
 	if (not _trace_as)
 		return Handle::UNDEFINED;
@@ -127,7 +127,7 @@ Handle TraceRecorder::add_execution(const Handle& schema,
                                     const Handle& input2,
                                     const Handle& input3,
                                     const Handle& output,
-                                    TruthValuePtr tv)
+                                    DistributionalValuePtr tv)
 {
 	if (not _trace_as)
 		return Handle::UNDEFINED;
@@ -138,7 +138,7 @@ Handle TraceRecorder::add_execution(const Handle& schema,
 
 Handle TraceRecorder::add_evaluation(const Handle& predicate,
                                      const Handle& argument,
-                                     TruthValuePtr tv)
+                                     DistributionalValuePtr tv)
 {
 	if (not _trace_as)
 		return Handle::UNDEFINED;
@@ -150,7 +150,7 @@ Handle TraceRecorder::add_evaluation(const Handle& predicate,
 
 Handle TraceRecorder::add_evaluation(const Handle& predicate,
                                      const Handle& arg1, const Handle& arg2,
-                                     TruthValuePtr tv)
+                                     DistributionalValuePtr tv)
 {
 	if (not _trace_as)
 		return Handle::UNDEFINED;

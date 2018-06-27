@@ -929,7 +929,7 @@ Handle PythonEval::apply(AtomSpace* as, const std::string& func, Handle varargs)
  * Apply the user function to the arguments passed in varargs and
  * return the extracted truth value.
  */
-TruthValuePtr PythonEval::apply_tv(AtomSpace *as,
+DistributionalValuePtr PythonEval::apply_tv(AtomSpace *as,
                                    const std::string& func,
                                    Handle varargs)
 {
@@ -965,13 +965,13 @@ TruthValuePtr PythonEval::apply_tv(AtomSpace *as,
 
     // Get the pointer to the truth value pointer. Yes, it does
     // contain a pointer to the shared_ptr not the underlying.
-    TruthValuePtr* tvpPtr = static_cast<TruthValuePtr*>
+    DistributionalValuePtr* tvpPtr = static_cast<DistributionalValuePtr*>
             (PyLong_AsVoidPtr(pyTruthValuePtrPtr));
 
     // Assign the truth value pointer using this pointer before
     // we decrement the reference to pyTruthValue since that
     // will delete this pointer.
-    TruthValuePtr tvp = *tvpPtr;
+    DistributionalValuePtr tvp = *tvpPtr;
 
     // Cleanup the reference counts.
     Py_DECREF(pyTruthValuePtrPtr);

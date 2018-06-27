@@ -23,14 +23,14 @@
 #define _OPENCOG_BINDLINK_API_H
 
 #include <opencog/atoms/base/Handle.h>
-#include <opencog/truthvalue/TruthValue.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 
 namespace opencog {
 
 class AtomSpace;
 
 Handle bindlink(AtomSpace*, const Handle&, size_t max_results=SIZE_MAX);
-TruthValuePtr satisfaction_link(AtomSpace*, const Handle&);
+DistributionalValuePtr satisfaction_link(AtomSpace*, const Handle&);
 Handle satisfying_set(AtomSpace*, const Handle&, size_t max_results=SIZE_MAX);
 Handle recognize(AtomSpace*, const Handle&);
 

@@ -207,7 +207,7 @@ public:
 	/**
 	 * Get the default TruthValue associated with the rule.
 	 */
-	TruthValuePtr get_tv() const;
+	DistributionalValuePtr get_tv() const;
 
 	/**
 	 * Create a new rule where all variables are uniquely renamed.
@@ -293,7 +293,7 @@ private:
 	// It is best to have this TV with a confidence lower than 1,
 	// otherwise, if given the choice between several valid rules, the
 	// URE will always choose the one with the highest confidence.
-	TruthValuePtr _tv;
+	DistributionalValuePtr _tv;
 
 	// Return a copy of the rule with the variables alpha-converted
 	// into random variable names.

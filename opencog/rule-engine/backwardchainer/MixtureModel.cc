@@ -29,7 +29,6 @@
 
 #include <opencog/util/numeric.h>
 #include <opencog/atomutils/FindUtils.h>
-#include <opencog/truthvalue/SimpleTruthValue.h>
 
 #include "BetaDistribution.h"
 #include "../URELogger.h"
@@ -42,13 +41,13 @@ MixtureModel::MixtureModel(const HandleSet& mds, double cpx, double cmp) :
 	data_set_size = infer_data_set_size();
 }
 
-TruthValuePtr MixtureModel::operator()() const
+DistributionalValuePtr MixtureModel::operator()(AtomSpace * as) const
 {
 	// Don't bother mixing if there's only one TV
 	if (models.size() == 1)
 		return (*models.begin())->getTruthValue();
 
-	std::vector<TruthValuePtr> tvs;
+	std::vector<DistributionalValuePtr> tvs;
 	std::vector<double> weights;
 	for (const Handle model : models) {
 		double weight = prior_estimate(model) * beta_factor(model);
@@ -57,11 +56,12 @@ TruthValuePtr MixtureModel::operator()() const
 		tvs.push_back(model->getTruthValue());
 		weights.push_back(weight);
 	}
-	return weighted_average(tvs, weights);
+	return weighted_average(as,tvs, weights);
 }
 
-TruthValuePtr MixtureModel::weighted_average(const std::vector<TruthValuePtr>& tvs,
-                                             const std::vector<double>& weights) const
+DistributionalValuePtr MixtureModel::weighted_average(AtomSpace* as,
+                                const std::vector<DistributionalValuePtr>& tvs,
+                                const std::vector<double>& weights) const
 {
 	// Normalize the weights
 	double total = boost::accumulate(weights, 0.0);
@@ -91,7 +91,7 @@ TruthValuePtr MixtureModel::weighted_average(const std::vector<TruthValuePtr>& t
 	LAZY_URE_LOG_FINE << "MixtureModel::weighted_average mean = " << mean
 	                  << ", variance = " << variance;
 
-	return mk_stv(mean, variance);
+    return std::make_shared<const DistributionalValue>(as,mean,variance);
 }
 
 double MixtureModel::beta_factor(const Handle& model) const
@@ -108,7 +108,7 @@ double MixtureModel::prior_estimate(const Handle& model) const
 
 	HandleSet all_atoms(get_all_uniq_atoms(model));
 	double partial_length = all_atoms.size(),
-		remain_data_size = data_set_size - model->getTruthValue()->get_count(),
+		remain_data_size = data_set_size - model->getTruthValue()->total_count(),
 		kestimate = kolmogorov_estimate(remain_data_size);
 
 	LAZY_URE_LOG_FINE << "MixtureModel::prior_estimate "
@@ -136,6 +136,6 @@ double MixtureModel::infer_data_set_size() const
 {
 	double max_count = 0.0;
 	for (const Handle& model : models)
-		max_count = std::max(max_count, model->getTruthValue()->get_count());
+		max_count = std::max(max_count, model->getTruthValue()->total_count());
 	return max_count;
 }

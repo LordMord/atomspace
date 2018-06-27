@@ -49,7 +49,7 @@
 #include <opencog/atoms/base/LinkValue.h>
 #include <opencog/atoms/base/StringValue.h>
 #include <opencog/atoms/base/Valuation.h>
-#include <opencog/truthvalue/TruthValue.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 #include <opencog/atomspace/AtomSpace.h>
 #include <opencog/atomspaceutils/TLB.h>
 
@@ -887,8 +887,7 @@ ProtoAtomPtr SQLAtomStorage::doUnpackValue(Response& rp)
 
 	// We expect rp.fltval to be of the form
 	// {1.1,2.2,3.3}
-	if ((vtype == FLOAT_VALUE)
-	    or classserver().isA(vtype, TRUTH_VALUE))
+	if (vtype == FLOAT_VALUE)
 	{
 		std::vector<double> fltarr;
 		char *p = (char *) rp.fltval;
@@ -900,10 +899,7 @@ ProtoAtomPtr SQLAtomStorage::doUnpackValue(Response& rp)
 			fltarr.emplace_back(flt);
 			p++; // skip over  comma
 		}
-		if (vtype == FLOAT_VALUE)
-			return createFloatValue(fltarr);
-		else
-			return ProtoAtomCast(TruthValue::factory(vtype, fltarr));
+	    return createFloatValue(fltarr);
 	}
 
 	// We expect rp.lnkval to be a comma-separated list of
@@ -923,6 +919,11 @@ ProtoAtomPtr SQLAtomStorage::doUnpackValue(Response& rp)
 			if (p) p++;
 		}
 		return createLinkValue(lnkarr);
+
+	 if (vtype == DISTRIBUTIONAL_VALUE)
+     {
+         throw RuntimeException(TRACE_INFO,"Not Implemented");
+     }
 	}
 
 	throw IOException(TRACE_INFO, "Unexpected value type=%d", rp.vtype);
@@ -971,7 +972,7 @@ void SQLAtomStorage::store_atom_values(const Handle& atom)
 
 	// Special-case for TruthValues. Can we get rid of this someday?
 	// Delete default TV's, else storage will get clogged with them.
-	TruthValuePtr tv(atom->getTruthValue());
+	DistributionalValuePtr tv(atom->getTruthValue());
 	if (tv->isDefaultTV()) deleteValuation(tvpred, atom);
 }
 

@@ -38,8 +38,7 @@
 #include <opencog/atomspace/AtomSpace.h>
 #include <opencog/server/CogServer.h>
 #include <opencog/atomspace/ClassServer.h>
-#include <opencog/truthvalue/SimpleTruthValue.h>
-#include <opencog/truthvalue/TruthValue.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 
 using namespace opencog;
 using namespace Hypertable;
@@ -334,15 +333,14 @@ void AtomspaceHTabler::storeAtom(Handle h)
     m_handle_mutator->set(key, val, val_len);
 
     // Store the truth value
-    const TruthValue &tv = as->getTV(h);
-    const SimpleTruthValue *stv = dynamic_cast<const SimpleTruthValue *>(&tv);
-    if (NULL == stv)
+    const DistributionalValue &tv = as->getTV(h);
+    if (NULL == tv)
     {
         std::cerr << "Non-simple truth values are not handled\n";
         return;
     }
     val_len = snprintf(val, BUFF_SIZE, "(%f, %f)",
-                tv.get_mean(), tv.get_count());
+                tv.get_fstord_mean(), tv.get_count());
     key.column_family = "stv";
     m_handle_mutator->set(key, val, val_len);
 
@@ -543,7 +541,7 @@ Atom * AtomspaceHTabler::getAtom(Handle h) const
     std::cout << "getAtom(): stv comma:" << comma <<std::endl;
     double count = atof(comma + 1);
     std::cout << "getAtom(): stv count OK" <<std::endl;
-    SimpleTruthValue nstv(mean, count);
+    DistributionalValue nstv(mean, count);
     atom_ptr->setTruthValue(nstv);
     std::cout << "getAtom(): truth value restored" <<std::endl;
 

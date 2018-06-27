@@ -1,5 +1,5 @@
 /*
- * opencog/truthvalue/ConditionalGDTV.cc
+ * opencog/truthvalue/ConditionalDistributionalValue.cc
  *
  * Copyright (C) 2018 SingularityNet
  * All Rights Reserved
@@ -26,32 +26,33 @@
 #include <math.h>
 #include <stdio.h>
 
-#include <opencog/truthvalue/ConditionalGDTV.h>
+#include <opencog/truthvalue/ConditionalDistributionalValue.h>
+#include <opencog/atomspace/AtomSpace.h>
 
 using namespace opencog;
 
-ConditionalGDTV::ConditionalGDTV()
-: ProtoAtom(CONDITIONAL_GENERALIZED_DISTRIBUTIONAL_TRUTH_VALUE)
+ConditionalDistributionalValue::ConditionalDistributionalValue()
+: ProtoAtom(CONDITIONAL_DISTRIBUTIONAL_VALUE)
 {
 }
 
-ConditionalGDTV::ConditionalGDTV(GDTVrep rep)
-: ProtoAtom(CONDITIONAL_GENERALIZED_DISTRIBUTIONAL_TRUTH_VALUE)
+ConditionalDistributionalValue::ConditionalDistributionalValue(DistributionalValuerep rep)
+: ProtoAtom(CONDITIONAL_DISTRIBUTIONAL_VALUE)
 {
     value = rep;
 }
 
-GDTVPtr ConditionalGDTV::getUnconditional(Handle h)
+DistributionalValuePtr ConditionalDistributionalValue::getUnconditional(Handle h)
 {
-    return std::make_shared<const GDTV>(value.find(h)->second);
+    return std::make_shared<const DistributionalValue>(value.find(h)->second);
 }
 
-GDTVPtr ConditionalGDTV::getUnconditional(GDTVPtr condDist)
+DistributionalValuePtr ConditionalDistributionalValue::getUnconditional(DistributionalValuePtr condDist)
 {
     HandleCounter res;
     for (auto gdtvpart : value)
     {
         res += gdtvpart.second * condDist->value.get(gdtvpart.first,0);
     }
-    return std::make_shared<const GDTV>(res);
+    return std::make_shared<const DistributionalValue>(res);
 }

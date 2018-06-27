@@ -24,9 +24,8 @@
 #include <opencog/atomspace/ClassServer.h>
 #include <opencog/atomspace/Node.h>
 #include <opencog/atomspace/Link.h>
-#include <opencog/truthvalue/SimpleTruthValue.h>
 #include <opencog/atomspace/TLB.h>
-#include <opencog/truthvalue/TruthValue.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 
 using namespace opencog;
 
@@ -114,9 +113,8 @@ void AtomCache::storeAtom(Atom *atom)
 	}
 
 	// Store the truth value
-	const TruthValue &tv = atom->getTruthValue();
-	const SimpleTruthValue *stv = dynamic_cast<const SimpleTruthValue *>(&tv);
-	if (NULL == stv)
+	const DistributionalValue &tv = atom->getTruthValue();
+	if (NULL == tv)
 	{
 		fprintf(stderr, "Error: non-simple truth values are not handled\n");
 		return;
@@ -192,8 +190,7 @@ Atom * AtomCache::getAtom(Handle h)
 	}
 
 	// Fetch the truth value
-	const TruthValue &tv = atom->getTruthValue();
-	const SimpleTruthValue *stv = dynamic_cast<const SimpleTruthValue *>(&tv);
+	const DistributionalValue &tv = atom->getTruthValue();
 	if (NULL == stv)
 	{
 		fprintf(stderr, "Error: non-simple truth values are not handled\n");
@@ -207,7 +204,7 @@ Atom * AtomCache::getAtom(Handle h)
 	double mean = atof(val+1);
 	char *comma = strchr(val+2, ',');
 	double count = atof(comma+1);
-	SimpleTruthValue nstv(mean,count);
+	DistributionalValue nstv(mean,count);
 	atom->setTruthValue(nstv);
 
 	return atom;

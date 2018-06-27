@@ -350,8 +350,8 @@ bool DefaultPatternMatchCB::post_link_match(const Handle& lpat,
 	// one how the evaluation turned out.  Its "crisp logic"
 	// because we use a greater-than-half for the TV.
 	// This is the same behavior as used in evaluate_term().
-	TruthValuePtr tv(EvaluationLink::do_evaluate(_as, lgnd));
-	return tv->get_mean() >= 0.5;
+	DistributionalValuePtr tv(EvaluationLink::do_evaluate(_as, lgnd));
+	return tv->get_fstord_mean() >= 0.5;
 }
 
 void DefaultPatternMatchCB::post_link_mismatch(const Handle& lpat,
@@ -523,7 +523,7 @@ bool DefaultPatternMatchCB::clause_match(const Handle& ptrn,
 		// default callback ignores the TV on EvaluationLinks. So this
 		// is kind-of schizophrenic here.  Not sure what else to do.
 		_temp_aspace->clear();
-		TruthValuePtr tvp(EvaluationLink::do_eval_scratch(_as, grnd, _temp_aspace));
+		DistributionalValuePtr tvp(EvaluationLink::do_eval_scratch(_as, grnd, _temp_aspace));
 
 		DO_LOG({LAZY_LOG_FINE << "Clause_match evaluation yeilded tv"
 		              << std::endl << tvp->to_string() << std::endl;})
@@ -531,7 +531,7 @@ bool DefaultPatternMatchCB::clause_match(const Handle& ptrn,
 		// XXX FIXME: we are making a crisp-logic go/no-go decision
 		// based on the TV strength. Perhaps something more subtle might be
 		// wanted, here.
-		bool relation_holds = tvp->get_mean() > 0.5;
+		bool relation_holds = tvp->get_fstord_mean() > 0.5;
 		return relation_holds;
 	}
 
@@ -633,7 +633,7 @@ bool DefaultPatternMatchCB::eval_term(const Handle& virt,
 	// do_evaluate callback.  Alternately, perhaps the
 	// EvaluationLink::do_evaluate() method should do this ??? Its a toss-up.
 
-	TruthValuePtr tvp;
+	DistributionalValuePtr tvp;
 	// The instantiator would have taken care of expanding out
 	// and executing any FunctionLinks and the like.  Just use
 	// the TV value on the resulting atom.
@@ -679,7 +679,7 @@ bool DefaultPatternMatchCB::eval_term(const Handle& virt,
 	// XXX FIXME: we are making a crsip-logic go/no-go decision
 	// based on the TV strength. Perhaps something more subtle might be
 	// wanted, here.
-	bool relation_holds = tvp->get_mean() > 0.5;
+	bool relation_holds = tvp->get_fstord_mean() > 0.5;
 	return relation_holds;
 }
 
@@ -811,13 +811,13 @@ bool DefaultPatternMatchCB::eval_sentence(const Handle& top,
 	auto g = gnds.find(top);
 	if (gnds.end() != g)
 	{
-		TruthValuePtr tvp(g->second->getTruthValue());
+		DistributionalValuePtr tvp(g->second->getTruthValue());
 		DO_LOG({LAZY_LOG_FINE << "Non-logical atom has tv="
 		              << tvp->to_string() << std::endl;})
 		// XXX FIXME: we are making a crisp-logic go/no-go decision
 		// based on the TV strength. Perhaps something more subtle might be
 		// wanted, here.
-		bool relation_holds = tvp->get_mean() > 0.5;
+		bool relation_holds = tvp->get_fstord_mean() > 0.5;
 		return relation_holds;
 	}
 

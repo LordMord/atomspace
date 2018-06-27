@@ -34,7 +34,7 @@ bool Satisfier::grounding(const HandleMap &var_soln,
                           const HandleMap &term_soln)
 {
 	// PatternMatchEngine::print_solution(var_soln, term_soln);
-	_result = TruthValue::TRUE_TV();
+	_result = DistributionalValue::TRUE_TV(_as);
 
 	// Record the grounding; we cache this later.
 	if (1 == _varseq.size())
@@ -80,7 +80,7 @@ bool Satisfier::search_finished(bool done)
 
 	// If there was a grounding, then don't re-run; we're here
 	// only to handle the no-groundings case.
-	if (TruthValue::TRUE_TV() == _result) return done;
+	if (DistributionalValue::TRUE_TV(_as) == _result) return done;
 
 	// _optionals_present will be set to true if some optional clause
 	// was grounded. Ergo, its not the no-grounding case.
@@ -101,7 +101,7 @@ bool Satisfier::search_finished(bool done)
 	HandleMap empty;
 	bool rc = eval_sentence(_pattern_body, empty);
 	if (rc)
-		_result = TruthValue::TRUE_TV();
+		_result = DistributionalValue::TRUE_TV(_as);
 
 	return rc;
 }
@@ -148,7 +148,7 @@ bool SatisfyingSet::grounding(const HandleMap &var_soln,
 	return (_satisfying_set.size() >= max_results);
 }
 
-TruthValuePtr opencog::satisfaction_link(AtomSpace* as, const Handle& hlink)
+DistributionalValuePtr opencog::satisfaction_link(AtomSpace* as, const Handle& hlink)
 {
 	PatternLinkPtr plp(PatternLinkCast(hlink));
 

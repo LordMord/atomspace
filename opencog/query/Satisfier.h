@@ -26,7 +26,7 @@
 
 #include <vector>
 
-#include <opencog/truthvalue/TruthValue.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 #include <opencog/atomspace/AtomSpace.h>
 
 #include <opencog/query/InitiateSearchCB.h>
@@ -53,11 +53,13 @@ class Satisfier :
 		Satisfier(AtomSpace* as) :
 			InitiateSearchCB(as),
 			DefaultPatternMatchCB(as),
-			_result(TruthValue::FALSE_TV()) {}
+			_result(DistributionalValue::FALSE_TV(as)) {}
 
 		HandleSeq _varseq;
 		Handle _ground;
-		TruthValuePtr _result;
+		DistributionalValuePtr _result;
+
+        using InitiateSearchCB::_as;
 
 		virtual void set_pattern(const Variables& vars,
 		                         const Pattern& pat)

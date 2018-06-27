@@ -21,7 +21,7 @@
 #include <opencog/util/Logger.h>
 
 #include <opencog/atoms/base/Handle.h>
-#include <opencog/truthvalue/TruthValue.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 #include <opencog/guile/SchemeSmob.h>
 #include <opencog/atoms/base/ClassServer.h>
 
@@ -130,7 +130,7 @@ protected:
 // Q == HandleSeq
 // K == HandleSeqSeq
 // S == string
-// P == TruthValuePtr
+// P == DistributionalValuePtr
 // T == Type
 // V == void
 // Z == size_t
@@ -284,7 +284,7 @@ protected:
 		SCM arg = scm_list_ref(args, scm_from_size_t(idx));
 		return SchemeSmob::verify_av(arg, scheme_name, idx);
 	}
-	TruthValuePtr scm_to(SCM args, size_t idx, const TruthValuePtr) const
+	DistributionalValuePtr scm_to(SCM args, size_t idx, const DistributionalValuePtr) const
 	{
 		SCM arg = scm_list_ref(args, scm_from_size_t(idx));
 		return SchemeSmob::verify_tv(arg, scheme_name, idx);
@@ -361,7 +361,7 @@ protected:
 	{
 		return SchemeSmob::handle_to_scm(h);
 	}
-	SCM scm_from(const HandleSeq& hs)
+    SCM scm_from(const HandleSeq& hs)
 	{
 		SCM rc;
 		HandleSeq::const_iterator it = hs.begin();
@@ -396,7 +396,7 @@ protected:
 	{
 		return SchemeSmob::av_to_scm(av);
 	}
-	SCM scm_from(TruthValuePtr tv)
+	SCM scm_from(DistributionalValuePtr tv)
 	{
 		return SchemeSmob::tv_to_scm(tv);
 	}

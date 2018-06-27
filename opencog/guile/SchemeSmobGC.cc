@@ -9,7 +9,6 @@
 #include <cstddef>
 #include <libguile.h>
 
-#include <opencog/truthvalue/TruthValue.h>
 #include <opencog/guile/SchemePrimitive.h>
 #include <opencog/guile/SchemeSmob.h>
 

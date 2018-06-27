@@ -1,14 +1,14 @@
 ADD_LIBRARY (truthvalue
-	AttentionValue.cc
-	CountTruthValue.cc
-	EvidenceCountTruthValue.cc
-	FuzzyTruthValue.cc
-	IndefiniteTruthValue.cc
-	ProbabilisticTruthValue.cc
-	SimpleTruthValue.cc
-	TruthValue.cc
-    GDTV.cc
-    ConditionalGDTV.cc
+    #AttentionValue.cc
+    #CountTruthValue.cc
+    #EvidenceCountTruthValue.cc
+    #FuzzyTruthValue.cc
+    #IndefiniteTruthValue.cc
+    #ProbabilisticTruthValue.cc
+    #SimpleTruthValue.cc
+    #TruthValue.cc
+    DistributionalValue.cc
+    ConditionalDistributionalValue.cc
 )
 
 # Without this, parallel make will race and crap up the generated files.
@@ -23,15 +23,15 @@ INSTALL (TARGETS truthvalue
 )
 
 INSTALL (FILES
-	AttentionValue.h
-	CountTruthValue.h
-	FuzzyTruthValue.h
-	IndefiniteTruthValue.h
-	ProbabilisticTruthValue.h
-	SimpleTruthValue.h
-	EvidenceCountTruthValue.h
-	TruthValue.h
-    GDTV.h
-    ConditionalGDTV.h
+    #AttentionValue.h
+    #CountTruthValue.h
+    #FuzzyTruthValue.h
+    #IndefiniteTruthValue.h
+    #ProbabilisticTruthValue.h
+    #SimpleTruthValue.h
+    #EvidenceCountTruthValue.h
+    #TruthValue.h
+    DistributionalValue.h
+    ConditionalDistributionalValue.h
 	DESTINATION "include/opencog/truthvalue"
 )

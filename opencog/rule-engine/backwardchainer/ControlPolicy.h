@@ -35,7 +35,7 @@ namespace opencog
 {
 
 //! a map from handles to truth values
-typedef std::map<Handle, TruthValuePtr> HandleTVMap;
+typedef std::map<Handle, DistributionalValuePtr> HandleTVMap;
 
 // Hold RuleTypedSubstitutionPair and double, the probability of
 // selecting the rule, which must be passed to the BIT to calculate
@@ -290,7 +290,7 @@ private:
 	 * TODO: replace this by the mean method of the TruthValue once
 	 * this class is properly re-implemented.
 	 */
-	double get_actual_mean(TruthValuePtr tv) const;
+	double get_actual_mean(DistributionalValuePtr tv) const;
 };
 
 } // namespace opencog

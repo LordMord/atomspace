@@ -116,7 +116,7 @@ private:
 	//   <output>
 	Handle add_execution(const Handle& schema,
 	                     const Handle& input, const Handle& output,
-	                     TruthValuePtr tv);
+	                     DistributionalValuePtr tv);
 
 	// Add
 	//
@@ -132,7 +132,7 @@ private:
 	                     const Handle& input2,
 	                     const Handle& input3,
 	                     const Handle& output,
-	                     TruthValuePtr tv);
+	                     DistributionalValuePtr tv);
 
 	// Add
 	//
@@ -141,7 +141,7 @@ private:
 	//   <argument>
 	Handle add_evaluation(const Handle& predicate,
 	                      const Handle& argument,
-	                      TruthValuePtr tv);
+	                      DistributionalValuePtr tv);
 
 	// Add
 	//
@@ -152,7 +152,7 @@ private:
 	//     <arg2>
 	Handle add_evaluation(const Handle& predicate,
 	                      const Handle& arg1, const Handle& arg2,
-	                      TruthValuePtr tv);
+	                      DistributionalValuePtr tv);
 
 	// Given a fcs, return all fcs that expands to this fcs target.
 	HandleSet get_expansion_sources(const Handle& fcs_target);

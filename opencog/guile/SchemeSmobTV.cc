@@ -25,12 +25,7 @@
 #include <memory>
 #include <libguile.h>
 
-#include <opencog/truthvalue/FuzzyTruthValue.h>
-#include <opencog/truthvalue/ProbabilisticTruthValue.h>
-#include <opencog/truthvalue/CountTruthValue.h>
-#include <opencog/truthvalue/IndefiniteTruthValue.h>
-#include <opencog/truthvalue/SimpleTruthValue.h>
-#include <opencog/truthvalue/EvidenceCountTruthValue.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 #include <opencog/guile/SchemeSmob.h>
 
 using namespace opencog;
@@ -51,7 +46,7 @@ using namespace opencog;
  * stubbed out, for a rainy day, in case we need to resurrect key-value
  * pairs in the future.
  */
-static TruthValuePtr get_tv_from_kvp(SCM kvp, const char * subrname, int pos)
+static DistributionalValuePtr get_tv_from_kvp(SCM kvp, const char * subrname, int pos)
 {
 	if (!scm_is_pair(kvp)) return NULL;
 
@@ -98,7 +93,7 @@ static TruthValuePtr get_tv_from_kvp(SCM kvp, const char * subrname, int pos)
  * Return the truth value if found, else return null.
  * Throw errors if the list is not strictly just key-value pairs
  */
-TruthValuePtr SchemeSmob::get_tv_from_list(SCM slist)
+DistributionalValuePtr SchemeSmob::get_tv_from_list(SCM slist)
 {
 	while (scm_is_pair(slist))
 	{
@@ -110,7 +105,7 @@ TruthValuePtr SchemeSmob::get_tv_from_list(SCM slist)
 			{
 				case COG_PROTOM: {
 					ProtoAtomPtr pa(scm_to_protom(sval));
-					TruthValuePtr tv(TruthValueCast(pa));
+					DistributionalValuePtr tv(TruthValueCast(pa));
 					if (tv) return tv;
 				}
 				default:
@@ -126,145 +121,30 @@ TruthValuePtr SchemeSmob::get_tv_from_list(SCM slist)
 
 /* ============================================================== */
 
-std::string SchemeSmob::tv_to_string(const TruthValuePtr& tv)
+std::string SchemeSmob::tv_to_string(const DistributionalValuePtr& tv)
 {
-#define BUFLEN 120
-	char buff[BUFLEN];
-	Type tvt = tv->get_type();
-
-	// Pretend they're floats, not doubles, so print with 8 digits
-	std::string ret = "";
-	if (SIMPLE_TRUTH_VALUE == tvt)
-	{
-		snprintf(buff, BUFLEN, "(stv %.8g ", tv->get_mean());
-		ret += buff;
-		snprintf(buff, BUFLEN, "%.8g)", tv->get_confidence());
-		ret += buff;
-		return ret;
-	}
-
-	if (COUNT_TRUTH_VALUE == tvt)
-	{
-		snprintf(buff, BUFLEN, "(ctv %.8g ", tv->get_mean());
-		ret += buff;
-		snprintf(buff, BUFLEN, "%.8g ", tv->get_confidence());
-		ret += buff;
-		snprintf(buff, BUFLEN, "%.8g)", tv->get_count());
-		ret += buff;
-		return ret;
-	}
-
-	if (INDEFINITE_TRUTH_VALUE == tvt)
-	{
-		const IndefiniteTruthValuePtr itv = IndefiniteTVCast(tv);
-		snprintf(buff, BUFLEN, "(itv %.8g ", itv->getL());
-		ret += buff;
-		snprintf(buff, BUFLEN, "%.8g ", itv->getU());
-		ret += buff;
-		snprintf(buff, BUFLEN, "%.8g)", itv->getConfidenceLevel());
-		ret += buff;
-		return ret;
-	}
-
-	if (PROBABILISTIC_TRUTH_VALUE == tvt)
-	{
-		snprintf(buff, BUFLEN, "(ptv %.8g ", tv->get_mean());
-		ret += buff;
-		snprintf(buff, BUFLEN, "%.8g ", tv->get_confidence());
-		ret += buff;
-		snprintf(buff, BUFLEN, "%.8g)", tv->get_count());
-		ret += buff;
-		return ret;
-	}
-
-	if (FUZZY_TRUTH_VALUE == tvt)
-	{
-		snprintf(buff, BUFLEN, "(ftv %.8g ", tv->get_mean());
-		ret += buff;
-		snprintf(buff, BUFLEN, "%.8g)", tv->get_confidence());
-		ret += buff;
-		return ret;
-	}
-
-	if (EVIDENCE_COUNT_TRUTH_VALUE == tvt)
-	{
-		const EvidenceCountTruthValuePtr etv = std::dynamic_pointer_cast<const EvidenceCountTruthValue>(tv);
-		snprintf(buff, BUFLEN, "(etv %.8g ", etv->getPositiveCount());
-		ret += buff;
-		snprintf(buff, BUFLEN, "%.8g)", etv->get_count());
-		ret += buff;
-		return ret;
-	}
-	return ret;
+	return tv->to_string();
 }
 
 /* ============================================================== */
 
-SCM SchemeSmob::tv_to_scm (const TruthValuePtr& tv)
+SCM SchemeSmob::tv_to_scm (const DistributionalValuePtr& tv)
 {
 	return protom_to_scm(ProtoAtomCast(tv));
 }
 
 /**
  * Create a new simple truth value, with indicated mean and confidence.
- */
+ *
 SCM SchemeSmob::ss_new_stv (SCM smean, SCM sconfidence)
 {
 	double mean = scm_to_double(smean);
 	double confidence = scm_to_double(sconfidence);
 
-	TruthValuePtr tv = SimpleTruthValue::createTV(mean, confidence);
+	DistributionalValuePtr tv = SimpleTruthValue::createTV(mean, confidence);
 	return tv_to_scm(tv);
 }
-
-SCM SchemeSmob::ss_new_ctv (SCM smean, SCM sconfidence, SCM scount)
-{
-	double mean = scm_to_double(smean);
-	double confidence = scm_to_double(sconfidence);
-	double count = scm_to_double(scount);
-
-	TruthValuePtr tv = CountTruthValue::createTV(mean, confidence, count);
-	return tv_to_scm(tv);
-}
-
-SCM SchemeSmob::ss_new_itv (SCM slower, SCM supper, SCM sconfidence)
-{
-	double lower = scm_to_double(slower);
-	double upper = scm_to_double(supper);
-	double confidence = scm_to_double(sconfidence);
-
-	TruthValuePtr tv = IndefiniteTruthValue::createTV(lower, upper, confidence);
-	return tv_to_scm(tv);
-}
-
-SCM SchemeSmob::ss_new_ptv (SCM smean, SCM sconfidence, SCM scount)
-{
-	double mean = scm_to_double(smean);
-	double confidence = scm_to_double(sconfidence);
-	double count = scm_to_double(scount);
-
-	TruthValuePtr tv = ProbabilisticTruthValue::createTV(mean, confidence, count);
-	return tv_to_scm(tv);
-}
-
-SCM SchemeSmob::ss_new_ftv (SCM smean, SCM sconfidence)
-{
-	double mean = scm_to_double(smean);
-	double confidence = scm_to_double(sconfidence);
-
-	float cnt = FuzzyTruthValue::confidenceToCount(confidence);
-	TruthValuePtr tv = FuzzyTruthValue::createTV(mean, cnt);
-	return tv_to_scm(tv);
-}
-
-SCM SchemeSmob::ss_new_etv (SCM sposcount, SCM stotalcount)
-{
-	double pos_count = scm_to_double(sposcount);
-	double total_count = scm_to_double(stotalcount);
-
-	TruthValuePtr tv = EvidenceCountTruthValue::createTV(pos_count, total_count);
-	return tv_to_scm(tv);
-}
+*/
 
 /* ============================================================== */
 /**
@@ -327,23 +207,22 @@ SCM SchemeSmob::ss_etv_p (SCM s)
 
 /* ============================================================== */
 
-TruthValuePtr SchemeSmob::scm_to_tv(SCM stv)
+DistributionalValuePtr SchemeSmob::scm_to_tv(SCM tv)
 {
-	ProtoAtomPtr pa(scm_to_protom(stv));
-	TruthValuePtr tv(TruthValueCast(pa));
-
-	return tv;
+	ProtoAtomPtr pa(scm_to_protom(tv));
+	DistributionalValuePtr dv(TruthValueCast(pa));
+	return dv;
 }
 
-TruthValuePtr SchemeSmob::verify_tv(SCM stv, const char *subrname, int pos)
+DistributionalValuePtr SchemeSmob::verify_tv(SCM tv, const char *subrname, int pos)
 {
-	ProtoAtomPtr pa(scm_to_protom(stv));
-	TruthValuePtr tv(TruthValueCast(pa));
+	ProtoAtomPtr pa(scm_to_protom(tv));
+	DistributionalValuePtr dv(TruthValueCast(pa));
 
-	if (nullptr == tv)
-		scm_wrong_type_arg_msg(subrname, pos, stv, "opencog truth value");
+	if (nullptr == dv)
+		scm_wrong_type_arg_msg(subrname, pos, tv, "opencog truth value");
 
-	return tv;
+	return dv;
 }
 
 /**
@@ -351,115 +230,32 @@ TruthValuePtr SchemeSmob::verify_tv(SCM stv, const char *subrname, int pos)
  */
 SCM SchemeSmob::ss_tv_get_value (SCM s)
 {
-	TruthValuePtr tv = verify_tv(s, "cog-tv->alist");
+	DistributionalValuePtr tv = verify_tv(s, "cog-tv->alist");
 	Type tvt = tv->get_type();
 
-	if (SIMPLE_TRUTH_VALUE == tvt)
+	if (DISTRIBUTIONAL_VALUE == tvt)
 	{
-		SCM mean = scm_from_double(tv->get_mean());
+		SCM mode = scm_from_vector_double(tv->get_mode());
+		SCM mean = scm_from_vector_double(tv->get_mean());
 		SCM conf = scm_from_double(tv->get_confidence());
-		SCM count = scm_from_double(tv->get_count());
+		SCM count = scm_from_double(tv->total_count());
+		SCM smode = scm_from_utf8_symbol("mode");
 		SCM smean = scm_from_utf8_symbol("mean");
 		SCM sconf = scm_from_utf8_symbol("confidence");
 		SCM scount = scm_from_utf8_symbol("count");
 
 		SCM rc = SCM_EOL;
-		rc = scm_acons(sconf, conf, rc);
-		rc = scm_acons(smean, mean, rc);
-		rc = scm_acons(scount, count, rc);
-		scm_remember_upto_here_1(s);
-		return rc;
-	}
-
-	if (COUNT_TRUTH_VALUE == tvt)
-	{
-		SCM mean = scm_from_double(tv->get_mean());
-		SCM conf = scm_from_double(tv->get_confidence());
-		SCM cont = scm_from_double(tv->get_count());
-		SCM smean = scm_from_utf8_symbol("mean");
-		SCM sconf = scm_from_utf8_symbol("confidence");
-		SCM scont = scm_from_utf8_symbol("count");
-
-		SCM rc = SCM_EOL;
-		rc = scm_acons(scont, cont, rc),
-		rc = scm_acons(sconf, conf, rc);
-		rc = scm_acons(smean, mean, rc);
-		scm_remember_upto_here_1(s);
-		return rc;
-	}
-
-	if (INDEFINITE_TRUTH_VALUE == tvt)
-	{
-		IndefiniteTruthValuePtr itv = IndefiniteTVCast(tv);
-		SCM lower = scm_from_double(itv->getL());
-		SCM upper = scm_from_double(itv->getU());
-		SCM conf_level = scm_from_double(itv->getConfidenceLevel());
-		SCM slower = scm_from_utf8_symbol("lower");
-		SCM supper = scm_from_utf8_symbol("upper");
-		SCM sconf_level = scm_from_utf8_symbol("confidence-level");
-	
-		SCM rc = SCM_EOL;
-		rc = scm_acons(sconf_level, conf_level, rc);
-		rc = scm_acons(supper, upper, rc),
-		rc = scm_acons(slower, lower, rc);
-		scm_remember_upto_here_1(s);
-		return rc;
-	}
-
-	if (PROBABILISTIC_TRUTH_VALUE == tvt)
-	{
-		SCM mean = scm_from_double(tv->get_mean());
-		SCM conf = scm_from_double(tv->get_confidence());
-		SCM cont = scm_from_double(tv->get_count());
-		SCM smean = scm_from_utf8_symbol("mean");
-		SCM sconf = scm_from_utf8_symbol("confidence");
-		SCM scont = scm_from_utf8_symbol("count");
-
-		SCM rc = SCM_EOL;
-		rc = scm_acons(scont, cont, rc),
-		rc = scm_acons(sconf, conf, rc);
-		rc = scm_acons(smean, mean, rc);
-		scm_remember_upto_here_1(s);
-		return rc;
-	}
-
-	if (FUZZY_TRUTH_VALUE == tvt)
-	{
-		SCM mean = scm_from_double(tv->get_mean());
-		SCM conf = scm_from_double(tv->get_confidence());
-		SCM count = scm_from_double(tv->get_count());
-		SCM smean = scm_from_utf8_symbol("mean");
-		SCM sconf = scm_from_utf8_symbol("confidence");
-		SCM scount = scm_from_utf8_symbol("count");
-
-		SCM rc = SCM_EOL;
-		rc = scm_acons(sconf, conf, rc);
-		rc = scm_acons(smean, mean, rc);
-		rc = scm_acons(scount, count, rc);
-		scm_remember_upto_here_1(s);
-		return rc;
-	}
-
-	if	(EVIDENCE_COUNT_TRUTH_VALUE == tvt)
-	{
-		EvidenceCountTruthValuePtr etv = std::dynamic_pointer_cast<const EvidenceCountTruthValue>(tv);
-		SCM poscount = scm_from_double(etv->getPositiveCount());
-		SCM mean = scm_from_double(etv->get_mean());
-		SCM conf = scm_from_double(etv->get_confidence());
-		SCM count = scm_from_double(etv->get_count());
-		SCM sposcount = scm_from_utf8_symbol("positive-count");
-		SCM smean = scm_from_utf8_symbol("mean");
-		SCM sconf = scm_from_utf8_symbol("confidence");
-		SCM scount = scm_from_utf8_symbol("count");
-
-		SCM rc = SCM_EOL;
-		rc = scm_acons(sposcount, poscount, rc);
+		rc = scm_acons(smode, mode, rc);
 		rc = scm_acons(smean, mean, rc);
 		rc = scm_acons(sconf, conf, rc);
 		rc = scm_acons(scount, count, rc);
 		scm_remember_upto_here_1(s);
 		return rc;
 	}
+    if (CONDITIONAL_DISTRIBUTIONAL_VALUE == tvt)
+    {
+        throw RuntimeException(TRACE_INFO,"Not Implemented");
+    }
 
 	scm_remember_upto_here_1(s);
 	return SCM_EOL;
@@ -470,16 +266,24 @@ SCM SchemeSmob::ss_tv_get_value (SCM s)
  */
 SCM SchemeSmob::ss_tv_get_mean(SCM s)
 {
-	TruthValuePtr tv = verify_tv(s, "cog-tv-mean");
-	return scm_from_double(tv->get_mean());
+	DistributionalValuePtr tv = verify_tv(s, "cog-tv-mean");
+	return scm_from_vector_double(tv->get_mean());
 }
 
+/**
+ * Return the truth value mode
+ */
+SCM SchemeSmob::ss_tv_get_mode(SCM s)
+{
+	DistributionalValuePtr tv = verify_tv(s, "cog-tv-mode");
+	return scm_from_vector_double(tv->get_mode());
+}
 /**
  * Return the truth value confidence
  */
 SCM SchemeSmob::ss_tv_get_confidence(SCM s)
 {
-	TruthValuePtr tv = verify_tv(s, "cog-tv-confidence");
+	DistributionalValuePtr tv = verify_tv(s, "cog-tv-confidence");
 	return scm_from_double(tv->get_confidence());
 }
 
@@ -488,26 +292,17 @@ SCM SchemeSmob::ss_tv_get_confidence(SCM s)
  */
 SCM SchemeSmob::ss_tv_get_count(SCM s)
 {
-	TruthValuePtr tv = verify_tv(s, "cog-tv-count");
-	return scm_from_double(tv->get_count());
+	DistributionalValuePtr tv = verify_tv(s, "cog-tv-count");
+	return scm_from_double(tv->total_count());
 }
 
 
 SCM SchemeSmob::ss_tv_merge (SCM sta, SCM stb)
 {
-	TruthValuePtr tva = verify_tv(sta, "cog-tv-merge", 1);
-	TruthValuePtr tvb = verify_tv(stb, "cog-tv-merge", 2);
+	DistributionalValuePtr tva = verify_tv(sta, "cog-tv-merge", 1);
+	DistributionalValuePtr tvb = verify_tv(stb, "cog-tv-merge", 2);
 
 	return tv_to_scm(tva->merge(tvb));
-}
-
-SCM SchemeSmob::ss_tv_merge_hi_conf (SCM sta, SCM stb)
-{
-	TruthValuePtr tva = verify_tv(sta, "cog-tv-merge-hi-conf", 1);
-	TruthValuePtr tvb = verify_tv(stb, "cog-tv-merge-hi-conf", 2);
-
-	return tv_to_scm(tva->merge(tvb,
-		MergeCtrl(MergeCtrl::TVFormula::HIGHER_CONFIDENCE)));
 }
 
 /* ===================== END OF FILE ============================ */

@@ -23,7 +23,7 @@
 #include <thread>
 
 #include <opencog/atoms/base/atom_types.h>
-#include <opencog/truthvalue/SimpleTruthValue.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 #include <opencog/atoms/core/DefineLink.h>
 #include <opencog/atoms/core/LambdaLink.h>
 #include <opencog/atoms/core/NumberNode.h>
@@ -124,7 +124,7 @@ static NumberNodePtr unwrap_set(Handle h)
 }
 
 // Perform a GreaterThan check
-static TruthValuePtr greater(AtomSpace* as, const Handle& h)
+static DistributionalValuePtr greater(AtomSpace* as, const Handle& h)
 {
 	const HandleSeq& oset = h->getOutgoingSet();
 	if (2 != oset.size())
@@ -139,13 +139,13 @@ static TruthValuePtr greater(AtomSpace* as, const Handle& h)
 	NumberNodePtr n2(unwrap_set(h2));
 
 	if (n1->get_value() > n2->get_value())
-		return TruthValue::TRUE_TV();
+		return DistributionalValue::TRUE_TV(as);
 	else
-		return TruthValue::FALSE_TV();
+		return DistributionalValue::FALSE_TV(as);
 }
 
 /// Check for syntactic equality
-static TruthValuePtr identical(const Handle& h)
+static DistributionalValuePtr identical(AtomSpace* as, const Handle& h)
 {
 	const HandleSeq& oset = h->getOutgoingSet();
 	if (2 != oset.size())
@@ -153,13 +153,13 @@ static TruthValuePtr identical(const Handle& h)
 		     "IdenticalLink expects two arguments");
 
 	if (oset[0] == oset[1])
-		return TruthValue::TRUE_TV();
+		return DistributionalValue::TRUE_TV(as);
 	else
-		return TruthValue::FALSE_TV();
+		return DistributionalValue::FALSE_TV(as);
 }
 
 /// Check for semantic equality
-static TruthValuePtr equal(AtomSpace* as, const Handle& h, bool silent)
+static DistributionalValuePtr equal(AtomSpace* as, const Handle& h, bool silent)
 {
 	const HandleSeq& oset = h->getOutgoingSet();
 	if (2 != oset.size())
@@ -171,9 +171,9 @@ static TruthValuePtr equal(AtomSpace* as, const Handle& h, bool silent)
 	Handle h1(inst.execute(oset[1], silent));
 
 	if (h0 == h1)
-		return TruthValue::TRUE_TV();
+		return DistributionalValue::TRUE_TV(as);
 	else
-		return TruthValue::FALSE_TV();
+		return DistributionalValue::FALSE_TV(as);
 }
 
 static bool is_evaluatable_sat(const Handle& satl)
@@ -216,7 +216,7 @@ static void thread_eval(AtomSpace* as,
 
 static void thread_eval_tv(AtomSpace* as,
                            const Handle& evelnk, AtomSpace* scratch,
-                           bool silent, TruthValuePtr* tv)
+                           bool silent, DistributionalValuePtr* tv)
 {
 	*tv = EvaluationLink::do_eval_scratch(as, evelnk, scratch, silent);
 }
@@ -224,8 +224,8 @@ static void thread_eval_tv(AtomSpace* as,
 /// do_evaluate -- evaluate any Node or Link types that can meaningfully
 /// result in a truth value.
 ///
-/// For example, evaluating a TrueLink returns TruthValue::TRUE_TV, and
-/// evaluating a FalseLink returns TruthValue::FALSE_TV.  Evaluating
+/// For example, evaluating a TrueLink returns DistributionalValue::TRUE_TV, and
+/// evaluating a FalseLink returns DistributionalValue::FALSE_TV.  Evaluating
 /// AndLink, OrLink returns the boolean and, or of their respective
 /// arguments.  A wide variety of Link types are evaluatable, this
 /// handles them all.
@@ -253,7 +253,7 @@ static void thread_eval_tv(AtomSpace* as,
 /// that were wrapped up by TrueLink, FalseLink. This is needed to get
 /// SequentialAndLink to work correctly, when moving down the sequence.
 ///
-TruthValuePtr EvaluationLink::do_eval_scratch(AtomSpace* as,
+DistributionalValuePtr EvaluationLink::do_eval_scratch(AtomSpace* as,
                                               const Handle& evelnk,
                                               AtomSpace* scratch,
                                               bool silent)
@@ -280,7 +280,7 @@ TruthValuePtr EvaluationLink::do_eval_scratch(AtomSpace* as,
 	}
 	else if (IDENTICAL_LINK == t)
 	{
-		return identical(evelnk);
+		return identical(as,evelnk);
 	}
 	else if (EQUAL_LINK == t)
 	{
@@ -292,36 +292,35 @@ TruthValuePtr EvaluationLink::do_eval_scratch(AtomSpace* as,
 	}
 	else if (NOT_LINK == t)
 	{
-		TruthValuePtr tv(do_eval_scratch(as, evelnk->getOutgoingAtom(0),
+		DistributionalValuePtr tv(do_eval_scratch(as, evelnk->getOutgoingAtom(0),
 		                                 scratch, silent));
-		return SimpleTruthValue::createTV(
-		              1.0 - tv->get_mean(), tv->get_confidence());
+		return tv->negate();
 	}
 	else if (AND_LINK == t)
 	{
 		for (const Handle& h : evelnk->getOutgoingSet())
 		{
-			TruthValuePtr tv(do_eval_scratch(as, h, scratch, silent));
-			if (tv->get_mean() < 0.5)
+			DistributionalValuePtr tv(do_eval_scratch(as, h, scratch, silent));
+			if (tv->get_fstord_mean() < 0.5)
 				return tv;
 		}
-		return TruthValue::TRUE_TV();
+		return DistributionalValue::TRUE_TV(as);
 	}
 	else if (OR_LINK == t)
 	{
 		for (const Handle& h : evelnk->getOutgoingSet())
 		{
-			TruthValuePtr tv(do_eval_scratch(as, h, scratch, silent));
-			if (0.5 < tv->get_mean())
+			DistributionalValuePtr tv(do_eval_scratch(as, h, scratch, silent));
+			if (0.5 < tv->get_fstord_mean())
 				return tv;
 		}
-		return TruthValue::FALSE_TV();
+		return DistributionalValue::FALSE_TV(as);
 	}
 	else if (SEQUENTIAL_AND_LINK == t)
 	{
 		const HandleSeq& oset = evelnk->getOutgoingSet();
 		size_t arity = oset.size();
-		if (0 == arity) return TruthValue::TRUE_TV();
+		if (0 == arity) return DistributionalValue::TRUE_TV(as);
 
 		// Is this tail-recursive? If so, then handle it.
 		bool is_trec = is_tail_rec(evelnk, oset[arity-1]);
@@ -332,18 +331,18 @@ TruthValuePtr EvaluationLink::do_eval_scratch(AtomSpace* as,
 		{
 			for (size_t i=0; i<arity; i++)
 			{
-				TruthValuePtr tv(do_eval_scratch(as, oset[i], scratch, silent));
-				if (tv->get_mean() < 0.5)
+				DistributionalValuePtr tv(do_eval_scratch(as, oset[i], scratch, silent));
+				if (tv->get_fstord_mean() < 0.5)
 					return tv;
 			}
 		} while (is_trec);
-		return TruthValue::TRUE_TV();
+		return DistributionalValue::TRUE_TV(as);
 	}
 	else if (SEQUENTIAL_OR_LINK == t)
 	{
 		const HandleSeq& oset = evelnk->getOutgoingSet();
 		size_t arity = oset.size();
-		if (0 == arity) return TruthValue::FALSE_TV();
+		if (0 == arity) return DistributionalValue::FALSE_TV(as);
 
 		// Is this tail-recursive? If so, then handle it.
 		bool is_trec = is_tail_rec(evelnk, oset[arity-1]);
@@ -354,18 +353,18 @@ TruthValuePtr EvaluationLink::do_eval_scratch(AtomSpace* as,
 		{
 			for (size_t i=0; i<arity; i++)
 			{
-				TruthValuePtr tv(do_eval_scratch(as, oset[i], scratch, silent));
-				if (0.5 < tv->get_mean())
+				DistributionalValuePtr tv(do_eval_scratch(as, oset[i], scratch, silent));
+				if (0.5 < tv->get_fstord_mean())
 					return tv;
 			}
 		} while (is_trec);
-		return TruthValue::FALSE_TV();
+		return DistributionalValue::FALSE_TV(as);
 	}
 	else if (JOIN_LINK == t)
 	{
 		const HandleSeq& oset = evelnk->getOutgoingSet();
 		size_t arity = oset.size();
-		std::vector<TruthValuePtr> tvp(arity);
+		std::vector<DistributionalValuePtr> tvp(arity);
 
 		// Create a collection of joinable threads.
 		std::vector<std::thread> thread_set;
@@ -379,12 +378,12 @@ TruthValuePtr EvaluationLink::do_eval_scratch(AtomSpace* as,
 		for (std::thread& t : thread_set) t.join();
 
 		// Return the logical-AND of the returned truth values
-		for (const TruthValuePtr& tv: tvp)
+		for (const DistributionalValuePtr& tv: tvp)
 		{
-			if (0.5 > tv->get_mean())
+			if (0.5 > tv->get_fstord_mean())
 				return tv;
 		}
-		return TruthValue::TRUE_TV();
+		return DistributionalValue::TRUE_TV(as);
 	}
 	else if (PARALLEL_LINK == t)
 	{
@@ -394,7 +393,7 @@ TruthValuePtr EvaluationLink::do_eval_scratch(AtomSpace* as,
 			std::thread thr(&thread_eval, as, h, scratch, silent);
 			thr.detach();
 		}
-		return TruthValue::TRUE_TV();
+		return DistributionalValue::TRUE_TV(as);
 	}
 	else if (TRUE_LINK == t or FALSE_LINK == t)
 	{
@@ -426,8 +425,8 @@ TruthValuePtr EvaluationLink::do_eval_scratch(AtomSpace* as,
 			}
 		}
 		if (TRUE_LINK == t)
-			return TruthValue::TRUE_TV();
-		return TruthValue::FALSE_TV();
+			return DistributionalValue::TRUE_TV(as);
+		return DistributionalValue::FALSE_TV(as);
 	}
 	else if (SATISFACTION_LINK == t)
 	{
@@ -500,7 +499,7 @@ TruthValuePtr EvaluationLink::do_eval_scratch(AtomSpace* as,
 		evelnk->to_string().c_str());
 }
 
-TruthValuePtr EvaluationLink::do_evaluate(AtomSpace* as,
+DistributionalValuePtr EvaluationLink::do_evaluate(AtomSpace* as,
                                           const Handle& evelnk,
                                           bool silent)
 {
@@ -514,7 +513,7 @@ TruthValuePtr EvaluationLink::do_evaluate(AtomSpace* as,
 /// Expects the second handle of the sequence to be a ListLink
 /// Executes the GroundedPredicateNode, supplying the second handle as argument
 ///
-TruthValuePtr EvaluationLink::do_evaluate(AtomSpace* as,
+DistributionalValuePtr EvaluationLink::do_evaluate(AtomSpace* as,
                                           const HandleSeq& sna,
                                           bool silent)
 {
@@ -532,7 +531,7 @@ TruthValuePtr EvaluationLink::do_evaluate(AtomSpace* as,
 /// Expects "args" to be a ListLink
 /// Executes the GroundedPredicateNode, supplying the args as argument
 ///
-TruthValuePtr EvaluationLink::do_evaluate(AtomSpace* as,
+DistributionalValuePtr EvaluationLink::do_evaluate(AtomSpace* as,
                                           const Handle& pn,
                                           const Handle& cargs,
                                           bool silent)
@@ -601,10 +600,10 @@ TruthValuePtr EvaluationLink::do_evaluate(AtomSpace* as,
 			Handle h1(args->getOutgoingAtom(i));
 			for (Arity j=i+1; j<sz; j++) {
 				Handle h2(args->getOutgoingAtom(j));
-				if (h1 == h2) return TruthValue::FALSE_TV();
+				if (h1 == h2) return DistributionalValue::FALSE_TV(as);
 			}
 		}
-		return TruthValue::TRUE_TV();
+		return DistributionalValue::TRUE_TV(as);
 	}
 
 	// At this point, we only run scheme and python schemas.

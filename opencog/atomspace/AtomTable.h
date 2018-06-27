@@ -34,7 +34,7 @@
 #include <opencog/util/RandGen.h>
 #include <opencog/util/sigslot.h>
 
-#include <opencog/truthvalue/TruthValue.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 
 #include <opencog/atoms/base/ClassServer.h>
 
@@ -54,8 +54,8 @@ typedef std::set<AtomPtr> AtomPtrSet;
 typedef SigSlot<const Handle&> AtomSignal;
 typedef SigSlot<const AtomPtr&> AtomPtrSignal;
 typedef SigSlot<const Handle&,
-                const TruthValuePtr&,
-                const TruthValuePtr&> TVCHSigl;
+                const DistributionalValuePtr&,
+                const DistributionalValuePtr&> TVCHSigl;
 
 class AtomSpace;
 

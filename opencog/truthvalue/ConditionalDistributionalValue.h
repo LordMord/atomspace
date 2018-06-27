@@ -1,5 +1,5 @@
 /*
- * opencog/truthvalue/GDTV.h
+ * opencog/truthvalue/ConditionalDistributionalValue.h
  *
  * Copyright (C) 2018 SingularityNet
  * All Rights Reserved
@@ -22,8 +22,8 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#ifndef _OPENCOG_GDTV_H
-#define _OPENCOG_GDTV_H
+#ifndef _OPENCOG_CONDITIONAL_DISTRIBUTIONAL_VALUE_H
+#define _OPENCOG_CONDITIONAL_DISTRIBUTIONAL_VALUE_H
 
 #include <memory>
 #include <string>
@@ -32,12 +32,8 @@
 
 #include <opencog/util/exceptions.h>
 #include <opencog/atoms/base/ProtoAtom.h>
-#include <opencog/atomspace/AtomSpace.h>
 
-#include <opencog/truthvalue/FuzzyTruthValue.h>
-#include <opencog/truthvalue/ProbabilisticTruthValue.h>
-#include <opencog/truthvalue/SimpleTruthValue.h>
-#include <opencog/truthvalue/TruthValue.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 /** \addtogroup grp_atomspace
  *  @{
  */
@@ -45,54 +41,28 @@
 namespace opencog
 {
 
-class GDTV;
-typedef std::shared_ptr<const GDTV> GDTVPtr;
+class ConditionalDistributionalValue;
+typedef std::shared_ptr<const ConditionalDistributionalValue> ConditionalDistributionalValuePtr;
 
-class GDTV
+typedef std::map<Handle,HandleCounter> DistributionalValuerep;
+
+class ConditionalDistributionalValue
     : public ProtoAtom
 {
-
-    friend class ConditionalGDTV;
-
-    HandleCounter value;
-    int k;
+    DistributionalValuerep value;
 
     // Disallow assignment -- truth values are immutable!
-    GDTV& operator=(const GDTV& rhs) {
+    ConditionalDistributionalValue& operator=(const ConditionalDistributionalValue& rhs) {
         throw RuntimeException(TRACE_INFO, "Cannot modify truth values!");
     }
 
 public:
-    GDTV();
-    GDTV(HandleCounter);
-    GDTV(SimpleTruthValue,AtomSpace);
-    GDTV(FuzzyTruthValue,AtomSpace);
+    ConditionalDistributionalValue();
+    ConditionalDistributionalValue(DistributionalValuerep);
 
-    static GDTVPtr UniformGDTV(std::vector<Handle>,int);
+    DistributionalValuePtr getUnconditional(Handle);
+    DistributionalValuePtr getUnconditional(DistributionalValuePtr);
 
-    std::vector<double> get_mode();
-    std::vector<double> get_mean();
-    std::vector<double> get_var();
-
-    double get_mode_for(double);
-    double get_mean_for(double);
-    double get_var_for(double);
-
-    void AddEvidence(Handle);
-    void AddEvidence(GDTVPtr);
-
-    double total_count();
-    double get_confidence(int);
-
-    Handle getKey(Handle);
-    double getCount(Handle);
-    double getMean(Handle);
-    double getMode(Handle);
-    double getVar(Handle);
-
-    virtual bool operator==(const ProtoAtom& rhs) const;
-
-    std::string to_string(const std::string&) const;
 };
 
 } // namespace opencog

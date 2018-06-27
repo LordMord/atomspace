@@ -24,7 +24,7 @@
 #define OPENCOG_ACTIONSELECTION_H_
 
 #include <opencog/atoms/base/Handle.h>
-#include <opencog/truthvalue/TruthValue.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 
 #include "BetaDistribution.h"
 
@@ -32,7 +32,7 @@ namespace opencog
 {
 
 //! a map from handles to truth values
-typedef std::map<Handle, TruthValuePtr> HandleTVMap;
+typedef std::map<Handle, DistributionalValuePtr> HandleTVMap;
 
 /**
  * Class containing methods to calculate distribution over actions

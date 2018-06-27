@@ -49,7 +49,7 @@
 #include <boost/filesystem/operations.hpp>
 
 #include <opencog/atoms/base/Handle.h>
-#include <opencog/truthvalue/TruthValue.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 #include <opencog/eval/GenericEval.h>
 
 
@@ -178,9 +178,9 @@ class PythonEval : public GenericEval
 
         /**
          * Calls the Python function passed in `func`, passing it
-         * the `varargs` as an argument, returning a TruthValuePtr.
+         * the `varargs` as an argument, returning a DistributionalValuePtr.
          */
-        TruthValuePtr apply_tv(AtomSpace*, const std::string& func, Handle varargs);
+        DistributionalValuePtr apply_tv(AtomSpace*, const std::string& func, Handle varargs);
 
         /**
          * Calls the Python function passed in `func`, passing it
