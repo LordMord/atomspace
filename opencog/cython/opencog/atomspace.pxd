@@ -40,36 +40,22 @@ ctypedef double count_t
 ctypedef float confidence_t
 ctypedef float strength_t
 
-cdef extern from "opencog/truthvalue/TruthValue.h" namespace "opencog":
-    cdef cppclass tv_ptr "std::shared_ptr<const opencog::TruthValue>":
+cdef extern from "opencog/truthvalue/DistributionalValue.h" namespace "opencog":
+    cdef cppclass tv_ptr "std::shared_ptr<const opencog::DistributionalValue>":
         tv_ptr()
         tv_ptr(tv_ptr copy)
         tv_ptr(cTruthValue* fun)
-        tv_ptr(cSimpleTruthValue* fun)
         cTruthValue* get()
 
-    cdef cppclass cTruthValue "const opencog::TruthValue":
-        strength_t get_mean()
+    cdef cppclass cTruthValue "const opencog::DistributionalValue":
+        cTruthValue(cAtomSpace*,float,float)
+        strength_t get_fstord_mean()
         confidence_t get_confidence()
-        count_t get_count()
+        count_t total_count()
         tv_ptr DEFAULT_TV()
         string to_string()
         bint operator==(cTruthValue h)
         bint operator!=(cTruthValue h)
-
-cdef extern from "opencog/truthvalue/SimpleTruthValue.h" namespace "opencog":
-    cdef cppclass cSimpleTruthValue "opencog::SimpleTruthValue":
-        cSimpleTruthValue(float, float)
-        strength_t get_mean()
-        confidence_t get_confidence()
-        count_t get_count()
-        count_t confidenceToCount(float)
-        confidence_t countToConfidence(float)
-        tv_ptr DEFAULT_TV()
-        string to_string()
-        bint operator==(cTruthValue h)
-        bint operator!=(cTruthValue h)
-
 
 # Basic OpenCog types
 # ClassServer
@@ -147,7 +133,7 @@ cdef class TruthValue:
     cdef _count(self)
     cdef cTruthValue* _ptr(self)
     cdef tv_ptr* _tvptr(self)
-    cdef _init(self, float mean, float count)
+    cdef _init(self,AtomSpace as, float mean, float count)
 
 cdef class Atom:
     cdef cHandle *handle

@@ -377,7 +377,7 @@ void SchemeSmob::register_proc(const char* name, int req, int opt, int rst, scm_
 	scm_c_export(name, NULL);
 }
 
-SCM scm_from_vector_double(const std::vector<double>& vd)
+SCM SchemeSmob::scm_from_vector_double(const std::vector<double>& vd)
 	{
 		SCM rc;
 		auto it = vd.begin();

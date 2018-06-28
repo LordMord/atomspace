@@ -54,6 +54,18 @@ DistributionalValue::DistributionalValue(AtomSpace* as,double mode,double conf)
     value[h] = count;
 }
 
+DistributionalValuePtr DistributionalValue::create_DV(HandleCounter hctr)
+{
+    return std::make_shared<const DistributionalValue>(hctr);
+}
+
+DistributionalValuePtr DistributionalValue::create_DV(AtomSpace* as
+                                                     ,double mode
+                                                     ,double conf)
+{
+    return std::make_shared<const DistributionalValue>(as,mode,conf);
+}
+
 DistributionalValuePtr DistributionalValue::UniformDistributionalValue(Handle h,int c)
 {
     HandleCounter hctr;
@@ -171,7 +183,7 @@ double DistributionalValue::minCount() const
     for (auto elem : value)
     {
         if (min >= elem.second)
-            min == elem.second;
+            min = elem.second;
     }
     return min;
 }
@@ -181,7 +193,7 @@ double DistributionalValue::maxCount() const
     for (auto elem : value)
     {
         if (max <= elem.second)
-            max == elem.second;
+            max = elem.second;
     }
     return max;
 }

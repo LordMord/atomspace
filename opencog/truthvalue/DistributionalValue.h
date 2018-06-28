@@ -80,6 +80,8 @@ public:
     static DistributionalValuePtr TRUE_TV(AtomSpace*);
     static DistributionalValuePtr FALSE_TV(AtomSpace*);
     static DistributionalValuePtr DEFAULT_TV(AtomSpace*);
+    static DistributionalValuePtr create_DV(AtomSpace*,double,double);
+    static DistributionalValuePtr create_DV(HandleCounter);
 
     bool IsUniform() const;
 

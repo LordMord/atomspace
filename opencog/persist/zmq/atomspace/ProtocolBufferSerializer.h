@@ -79,7 +79,7 @@ public:
 //    static void serialize(Atom &atom, ZMQAtomMessage* atomMessage);
 
     static DistributionalValuePtr deserialize(const ZMQTruthValueMessage& truthValueMessage);
-    static void serialize(TruthValue &tv, ZMQTruthValueMessage* truthValueMessage);
+    static void serialize(DistributionalValue &tv, ZMQTruthValueMessage* truthValueMessage);
 };
 
 /** @}*/

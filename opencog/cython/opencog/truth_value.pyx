@@ -14,9 +14,9 @@ cdef class TruthValue:
     # Declared in atomspace.pxd
     # cdef tv_ptr *cobj
 
-    def __cinit__(self, strength=1.0, confidence=0.0):
-        # By default create a SimpleTruthValue
-        self.cobj = new tv_ptr(new cSimpleTruthValue(strength, confidence))
+    def __cinit__(self,AtomSpace as, strength=1.0, confidence=0.0):
+        # By default create a empty DistributionalValue
+        self.cobj = new tv_ptr(new cTruthValue(as.atomspace,strength,confidence))
 
     def __dealloc__(self):
         # This deletes the *smart pointer*, not the actual pointer
@@ -32,16 +32,16 @@ cdef class TruthValue:
         def __get__(self): return self._count()
 
     cdef _mean(self):
-        return self._ptr().get_mean()
+        return self._ptr().get_fstord_mean()
 
     cdef _confidence(self):
         return self._ptr().get_confidence()
 
     cdef _count(self):
-        return self._ptr().get_count()
+        return self._ptr().total_count()
 
-    cdef _init(self, float mean, float confidence):
-        self.cobj = new tv_ptr(new cSimpleTruthValue(mean, confidence))
+    cdef _init(self,AtomSpace as, float mean, float confidence):
+        self.cobj = new tv_ptr(new cTruthValue(as.atomspace,mean, confidence))
 
     def __richcmp__(TruthValue h1, TruthValue h2, int op):
         " @todo support the rest of the comparison operators"

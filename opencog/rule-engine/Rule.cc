@@ -157,7 +157,7 @@ bool Rule::is_alpha_equivalent(const Rule& r) const
 	return _rule->is_equal(Handle(r._rule));
 }
 
-TruthValuePtr Rule::get_tv() const
+DistributionalValuePtr Rule::get_tv() const
 {
 	return _tv;
 }

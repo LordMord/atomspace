@@ -31,8 +31,8 @@ URECommons::URECommons(AtomSpace& as) : _as(as) {}
 
 double URECommons::tv_fitness(const Handle& h) const
 {
-	TruthValuePtr ptv(h->getTruthValue());
+	DistributionalValuePtr ptv(h->getTruthValue());
 	confidence_t c = ptv->get_confidence();
-	strength_t s = ptv->get_mean();
+	strength_t s = ptv->get_fstord_mean();
 	return (pow(s, FITNESS_PARAM) * (pow(c, (2 - FITNESS_PARAM))));
 }

@@ -11,7 +11,7 @@
 #include <opencog/atoms/base/Atom.h>
 #include <opencog/atoms/base/Link.h>
 #include <opencog/atoms/base/Node.h>
-#include <opencog/truthvalue/SimpleTruthValue.h>
+#include <opencog/truthvalue/DistributionalValue.h>
 
 #include <opencog/atoms/base/FloatValue.h>
 #include <opencog/atoms/base/LinkValue.h>
@@ -60,11 +60,12 @@ int atomCompare(Atom *a, Atom *b)
     }
     if (!(a->getTruthValue() == b->getTruthValue()))
     {
-        TruthValuePtr ta = a->getTruthValue();
-        TruthValuePtr tb = b->getTruthValue();
+        DistributionalValuePtr ta = a->getTruthValue();
+        DistributionalValuePtr tb = b->getTruthValue();
         fprintf(stderr, "Error, truth value miscompare, "
                 "ma=%f mb=%f ca=%f cb=%f\n",
-                ta->get_mean(), tb->get_mean(), ta->get_count(), tb->get_count());
+                ta->get_fstord_mean(), tb->get_fstord_mean(),
+                ta->total_count(), tb->total_count());
         rc --;
     }
     return rc;
@@ -72,7 +73,7 @@ int atomCompare(Atom *a, Atom *b)
 
 
 /**
- * A simple test cases that tests the save and restore of 
+ * A simple test cases that tests the save and restore of
  * a couple of nodes and a link. Does not test atomspaces at all.
  */
 #if 0
@@ -80,13 +81,13 @@ void single_atom_test(std::string id)
 {
     SQLAtomStorage *store = new SQLAtomStorage("opencog", "linas", NULL);
 
-    // Create an atom ... 
+    // Create an atom ...
     Atom *a = new Node(SCHEMA_NODE, id + "someNode");
     SimpleTruthValue stv(0.55, 0.6);
     a->setTruthValue(stv);
     TLB::addAtom(a);
 
-    // Store the atom ... 
+    // Store the atom ...
     store->storeAtom(a);
 
     // Fetch it back ...
@@ -95,7 +96,7 @@ void single_atom_test(std::string id)
 
     // Are they equal ??
     int rc = atomCompare(a,b);
-    if (!rc) 
+    if (!rc)
     {
         printf("atom compare success\n");
     }
@@ -116,7 +117,7 @@ void single_atom_test(std::string id)
 
     Atom *lb = store->getAtom(l->get_handle());
     rc = atomCompare(l,lb);
-    if (!rc) 
+    if (!rc)
     {
         printf("link compare success\n");
     }
@@ -126,7 +127,7 @@ void single_atom_test(std::string id)
 
 void add_to_table(AtomTable *table, std::string id)
 {
-    // Create an atom ... 
+    // Create an atom ...
     Atom *a = new Node(SCHEMA_NODE, id + "fromNode");
     SimpleTruthValue stv(0.11, 33);
     a->setTruthValue(stv);

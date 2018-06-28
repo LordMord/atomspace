@@ -1,3 +1,5 @@
+
+IF (HAVE_STACK)
 ADD_LIBRARY (atomspace-cwrapper
     AtomSpace_CWrapper.cpp
     PatternMatcher_CWrapper.cpp
@@ -18,7 +20,6 @@ INSTALL (TARGETS atomspace-cwrapper
 	DESTINATION "lib${LIB_DIR_SUFFIX}/opencog"
 )
 
-IF (HAVE_STACK)
     ADD_CUSTOM_TARGET(haskell-atomspace-lib ALL
         DEPENDS atomspace-cwrapper
         COMMAND bash build.sh ${CMAKE_CURRENT_BINARY_DIR}

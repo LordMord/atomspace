@@ -1,5 +1,5 @@
 ADD_LIBRARY (truthvalue
-    #AttentionValue.cc
+    AttentionValue.cc
     #CountTruthValue.cc
     #EvidenceCountTruthValue.cc
     #FuzzyTruthValue.cc
@@ -23,7 +23,7 @@ INSTALL (TARGETS truthvalue
 )
 
 INSTALL (FILES
-    #AttentionValue.h
+    AttentionValue.h
     #CountTruthValue.h
     #FuzzyTruthValue.h
     #IndefiniteTruthValue.h
