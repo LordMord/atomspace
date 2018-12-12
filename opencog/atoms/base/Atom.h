@@ -400,6 +400,8 @@ public:
 
     /** Ordering operator for Atoms. */
     virtual bool operator<(const Atom&) const = 0;
+
+	bool operator<(const ProtoAtom&) const;
 };
 
 static inline AtomPtr AtomCast(const ProtoAtomPtr& pa)

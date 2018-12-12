@@ -447,4 +447,12 @@ std::string oc_to_string(const IncomingSet& iset, const std::string& indent)
 	return ss.str();
 }
 
+bool Atom::operator<(const ProtoAtom& other) const
+{
+	if (nameserver().isA(other.get_type(),ATOM)
+        return this < dynamic_cast<const Atom&>(other);
+    else
+		return get_type() < other.get_type();
+}
+
 } // ~namespace opencog
