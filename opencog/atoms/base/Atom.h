@@ -401,6 +401,10 @@ public:
     /** Ordering operator for Atoms. */
     virtual bool operator<(const Atom&) const = 0;
 
+    /**
+     * Same as operator<(const Atom&) when use with Atoms
+     * otherwise orders based on Type
+     */
 	bool operator<(const ProtoAtom&) const;
 };
 
