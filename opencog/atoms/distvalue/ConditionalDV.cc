@@ -113,7 +113,7 @@ DVCounter ConditionalDV::get_unconditionalP(const DVKey &h) const
 	DVCounter res;
 	for (auto elem : _value)
 	{
-		double weight = DistributionalValue::key_contained(h,elem.first);
+		double weight = DistributionalValue::conditional_probabilty(h,elem.first);
 		double count = elem.second.total_count();
 		//DV Elems with count of 0 are not allowed
 		if (count != 0 && weight != 0)

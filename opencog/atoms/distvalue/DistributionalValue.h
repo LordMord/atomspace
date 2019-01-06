@@ -117,7 +117,7 @@ public:
 	double total_count() const;
 	double get_confidence() const;
 
-	static double key_contained(const DVKey&, const DVKey&);
+	static double conditional_probabilty(const DVKey&, const DVKey&);
 
 	bool has_key(const DVKey&) const;
 	DVKeySeq get_keys() const;

@@ -25,6 +25,8 @@
 #include <float.h>
 #include <math.h>
 #include <stdio.h>
+#include <tuple>
+#include <iomanip>
 
 #include <opencog/util/numeric.h>
 
@@ -32,7 +34,6 @@
 #include <opencog/atomspace/AtomSpace.h>
 
 #include <boost/range/combine.hpp>
-#include <iomanip>
 
 using namespace opencog;
 
@@ -317,14 +318,16 @@ double DistributionalValue::get_count(const DVKey &h) const
 }
 
 //Find out how much of Key1 is contained in Key2
-double DistributionalValue::key_contained(const DVKey &ks1,const DVKey &ks2)
+//The Keys can be considered continuous uniform distributions
+//This calculates the conditional_probabilty of Key2 given Key1
+double DistributionalValue::conditional_probabilty(const DVKey &ks1,const DVKey &ks2)
 {
 	Interval k1,k2;
 	//Start with the assumption that 100% of Key1 is in Key2
 	double sum = 1;
 	for (auto zipped : boost::combine(ks1,ks2))
 	{
-		boost::tie(k1,k2) = zipped;
+		std::tie(k1,k2) = zipped;
 		//Singleton Intervals are equal => assumption is correct and we can continue
 		if (k1.size() == 1 && 1 == k2.size() && k1[0] == k2[0])
 			continue;
@@ -378,7 +381,7 @@ double DistributionalValue::get_contained_count(const DVKey &h) const
 	double res = 0;
 	for (auto v : _value)
 	{
-		double weigth = DistributionalValue::key_contained(h,v.first);
+		double weigth = DistributionalValue::conditional_probabilty(h,v.first);
 		res += v.second * weigth;
 	}
 	return res;
