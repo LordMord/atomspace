@@ -177,7 +177,8 @@ DistributionalValuePtr DistributionalValue::merge(DistributionalValuePtr other) 
 //Flip all the counts
 DistributionalValuePtr DistributionalValue::negate() const
 {
-	double total = max_count() + min_count();
+	Interval minmax = minmax_count();
+	double total = minmax[0] + minmax[1];
 	DVCounter res;
 	for (auto elem : _value)
 	{
@@ -186,28 +187,18 @@ DistributionalValuePtr DistributionalValue::negate() const
 	return createDV(res);
 }
 
-//Get the lowest count of all Interals
-double DistributionalValue::min_count() const
+//Get the lowest and highest count of all Interals
+Interval DistributionalValue::minmax_count() const
 {
-	double min = std::numeric_limits<double>::max();
+	Interval minmax = Interval{std::numeric_limits<double>::max(),0};
 	for (auto elem : _value)
 	{
-		if (min >= elem.second)
-			min = elem.second;
+		if (minmax[0] >= elem.second)
+			minmax[0] = elem.second;
+		if (minmax[1] <= elem.second)
+			minmax[1] = elem.second;
 	}
-	return min;
-}
-
-//Get the highest count of all Interals
-double DistributionalValue::max_count() const
-{
-	double max = 0;
-	for (auto elem : _value)
-	{
-		if (max <= elem.second)
-			max = elem.second;
-	}
-	return max;
+	return minmax;
 }
 
 std::vector<double> DistributionalValue::get_mode() const
