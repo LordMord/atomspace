@@ -102,30 +102,45 @@ DistributionalValue::UniformDistributionalValue(const DVKeySeq &ks,int c)
 
 DistributionalValuePtr DistributionalValue::TRUE_TV()
 {
-	DVKey v1{Interval{1.0}};
-	DVKey v2{Interval{0.0}};
-	DVCounter dvc;
-	dvc[v1] = 1;
-	dvc[v2] = 0;
-	return std::make_shared<const DistributionalValue>(dvc);
+	static DistributionalValuePtr instance;
+	if (instance == nullptr)
+	{
+		DVKey v1{Interval{1.0}};
+		DVKey v2{Interval{0.0}};
+		DVCounter dvc;
+		dvc[v1] = 1;
+		dvc[v2] = 0;
+		instance = std::make_shared<const DistributionalValue>(dvc);
+	}
+    return instance;
 }
 DistributionalValuePtr DistributionalValue::FALSE_TV()
 {
-	DVKey v1{Interval{1.0}};
-	DVKey v2{Interval{0.0}};
-	DVCounter dvc;
-	dvc[v1] = 0;
-	dvc[v2] = 1;
-	return std::make_shared<const DistributionalValue>(dvc);
+	static DistributionalValuePtr instance;
+	if (instance == nullptr)
+	{
+		DVKey v1{Interval{1.0}};
+		DVKey v2{Interval{0.0}};
+		DVCounter dvc;
+		dvc[v1] = 0;
+		dvc[v2] = 1;
+		instance = std::make_shared<const DistributionalValue>(dvc);
+	}
+    return instance;
 }
 DistributionalValuePtr DistributionalValue::DEFAULT_TV()
 {
-	DVKey v1{Interval{1.0}};
-	DVKey v2{Interval{0.0}};
-	DVCounter dvc;
-	dvc[v1] = 0;
-	dvc[v2] = 0;
-	return std::make_shared<const DistributionalValue>(dvc);
+	static DistributionalValuePtr instance;
+	if (instance == nullptr)
+	{
+		DVKey v1{Interval{1.0}};
+		DVKey v2{Interval{0.0}};
+		DVCounter dvc;
+		dvc[v1] = 0;
+		dvc[v2] = 0;
+		instance = std::make_shared<const DistributionalValue>(dvc);
+	}
+    return instance;
 }
 
 bool DistributionalValue::is_uniform() const
