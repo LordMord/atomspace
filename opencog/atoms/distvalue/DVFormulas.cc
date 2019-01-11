@@ -35,7 +35,7 @@
 using namespace opencog;
 
 //Given a key return the min of all it's Intervals
-DVec DVFormulas::get_key_min(const DVKey &k)
+DVec DVFormulas::get_key_min(const NdimBin &k)
 {
 	std::vector<double> res;
 	for (auto interval : k)
@@ -44,7 +44,7 @@ DVec DVFormulas::get_key_min(const DVKey &k)
 }
 
 //Given a key return the max of all it's Intervals
-DVec DVFormulas::get_key_max(const DVKey &k)
+DVec DVFormulas::get_key_max(const NdimBin &k)
 {
 	std::vector<double> res;
 	for (auto interval : k)
@@ -59,6 +59,7 @@ DVec DVFormulas::get_key_max(const DVKey &k)
 //(A,B,C) + (B,C) => (B,C) -> A
 //idx is the position of consequent in the joint Distribution
 //(A,B,C) A is at idx 0
+//Result has the same total_count as dv2
 ConditionalDVPtr DVFormulas::joint_to_cdv(DistributionalValuePtr dv1,
                                           DistributionalValuePtr dv2,
                                           int idx)
@@ -73,9 +74,11 @@ ConditionalDVPtr DVFormulas::joint_to_cdv(DistributionalValuePtr dv1,
 
 	for (auto elem : dv1->value())
 	{
-		DVKey hs = elem.first;
+		NdimBin hs = elem.first;
 
-		DVKey h = DVKey{hs[idx]};
+		//get the consequent
+		NdimBin h = NdimBin{hs[idx]};
+		//remove it from the condition
 		hs.erase(hs.begin() + idx);
 
 		if (dv2->get_contained_mean(hs) != 0)
@@ -93,7 +96,7 @@ DistributionalValuePtr DVFormulas::sum_joint(DistributionalValuePtr dv, int pos)
 	DVCounter res;
 	for (auto elem : dv->value())
 	{
-		DVKey key = elem.first;
+		NdimBin key = elem.first;
 		key.erase(key.begin() + pos);
 		res[key] += elem.second;
 	}

@@ -87,35 +87,35 @@ DistributionalValueSCM::verify_interval(SCM svalue_list, const char * subrname, 
 	return SchemeSmob::scm_to_float_list(svalue_list);
 }
 
-DVKey
-DistributionalValueSCM::verify_DVKey(SCM svalue_list, const char * subrname, int pos)
+NdimBin
+DistributionalValueSCM::verify_NdimBin(SCM svalue_list, const char * subrname, int pos)
 {
 	// Verify that second arg is an actual list.
 	// Null lists are not valid intervals.
 	if (!scm_is_pair(svalue_list))
 		scm_wrong_type_arg_msg(subrname, pos, svalue_list, "a non-null list of float-pt values");
-	return scm_to_DVKey(svalue_list);
+	return scm_to_NdimBin(svalue_list);
 }
 
-DVKeySeq
-DistributionalValueSCM::verify_DVKeySeq(SCM svalue_list, const char * subrname, int pos)
+NdimBinSeq
+DistributionalValueSCM::verify_NdimBinSeq(SCM svalue_list, const char * subrname, int pos)
 {
 	// Verify that second arg is an actual list.
 	// Null lists are not valid intervals.
 	if (!scm_is_pair(svalue_list))
 		scm_wrong_type_arg_msg(subrname, pos, svalue_list, "a non-null list of float-pt values");
-	return scm_to_DVKeySeq(svalue_list);
+	return scm_to_NdimBinSeq(svalue_list);
 }
 
-DVKey DistributionalValueSCM::scm_to_DVKey(SCM svalue_list)
+NdimBin DistributionalValueSCM::scm_to_NdimBin(SCM svalue_list)
 {
-	DVKey valist;
+	NdimBin valist;
 	SCM sl = svalue_list;
 	while (scm_is_pair(sl)) {
 		SCM svalue = SCM_CAR(sl);
 
 		if (not scm_is_null(svalue)) {
-			std::vector<double> v = verify_interval(svalue,"scm_to_DVKey",0);
+			std::vector<double> v = verify_interval(svalue,"scm_to_NdimBin",0);
 			valist.emplace_back(v);
 		}
 		sl = SCM_CDR(sl);
@@ -123,15 +123,15 @@ DVKey DistributionalValueSCM::scm_to_DVKey(SCM svalue_list)
 	return valist;
 }
 
-DVKeySeq DistributionalValueSCM::scm_to_DVKeySeq(SCM svalue_list)
+NdimBinSeq DistributionalValueSCM::scm_to_NdimBinSeq(SCM svalue_list)
 {
-	DVKeySeq valist;
+	NdimBinSeq valist;
 	SCM sl = svalue_list;
 	while (scm_is_pair(sl)) {
 		SCM svalue = SCM_CAR(sl);
 
 		if (not scm_is_null(svalue)) {
-			DVKey v = verify_DVKey(svalue,"scm_to_DVKeySeq",0);
+			NdimBin v = verify_NdimBin(svalue,"scm_to_NdimBinSeq",0);
 			valist.emplace_back(v);
 		}
 		sl = SCM_CDR(sl);
@@ -157,7 +157,7 @@ SCM DistributionalValueSCM::float_list_to_scm(const std::vector<double>& v)
 	return res;
 }
 
-SCM DistributionalValueSCM::dvkey_to_scm(const DVKey& v)
+SCM DistributionalValueSCM::dvkey_to_scm(const NdimBin& v)
 {
 	SCM res = SCM_UNDEFINED;
 	bool first = true;
@@ -175,7 +175,7 @@ SCM DistributionalValueSCM::dvkey_to_scm(const DVKey& v)
 	return res;
 }
 
-SCM DistributionalValueSCM::dvkeyseq_to_scm(const DVKeySeq& v)
+SCM DistributionalValueSCM::dvkeyseq_to_scm(const NdimBinSeq& v)
 {
 	SCM res = SCM_UNDEFINED;
 	bool first = true;
@@ -240,7 +240,7 @@ SCM DistributionalValueSCM::dvs_to_scm(const std::vector<DistributionalValuePtr>
  */
 SCM DistributionalValueSCM::ss_new_dv(SCM sks, SCM scs)
 {
-	DVKeySeq ks = verify_DVKeySeq(sks,"cog-new-dv",1);
+	NdimBinSeq ks = verify_NdimBinSeq(sks,"cog-new-dv",1);
 	std::vector<double> cs = SchemeSmob::scm_to_float_list(scs);
 	auto it1 = ks.begin();
 	auto it2 = cs.begin();
@@ -403,7 +403,7 @@ ConditionalDVPtr DistributionalValueSCM::verify_cdv(SCM sav, const char *subrnam
 
 SCM DistributionalValueSCM::ss_new_cdv(SCM sconds,SCM sdvs)
 {
-	DVKeySeq conds = verify_DVKeySeq(sconds,"cog-new-cdv",1);
+	NdimBinSeq conds = verify_NdimBinSeq(sconds,"cog-new-cdv",1);
 	std::vector<DistributionalValuePtr> dvs = verify_dv_list(sdvs,"cog-new-cdv",2);
 	ConditionalDVPtr cdv = ConditionalDV::createCDV(conds,dvs);
 	return cdv_to_scm(cdv);
@@ -412,7 +412,7 @@ SCM DistributionalValueSCM::ss_new_cdv(SCM sconds,SCM sdvs)
 SCM DistributionalValueSCM::ss_cdv_get_conditions(SCM scdv)
 {
 	ConditionalDVPtr cdv = verify_cdv(scdv,"cog-cdv-get-conditions",1);
-	DVKeySeq conds = cdv->get_conditions();
+	NdimBinSeq conds = cdv->get_conditions();
 	return dvkeyseq_to_scm(conds);
 }
 

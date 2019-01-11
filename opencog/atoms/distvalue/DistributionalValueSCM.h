@@ -48,8 +48,8 @@ protected:
 	SCM dvs_to_scm(const std::vector<DistributionalValuePtr>&);
 	SCM cdv_to_scm(const ConditionalDVPtr&);
 	SCM float_list_to_scm(const std::vector<double>&);
-	SCM dvkey_to_scm(const DVKey&);
-	SCM dvkeyseq_to_scm(const DVKeySeq&);
+	SCM dvkey_to_scm(const NdimBin&);
+	SCM dvkeyseq_to_scm(const NdimBinSeq&);
 
 	SCM ss_new_dv(SCM, SCM);
 	SCM ss_new_dv_simple(SCM, SCM);
@@ -72,15 +72,15 @@ protected:
 	SCM ss_cdv_cde(SCM,SCM);
 
 	Interval verify_interval(SCM, const char *, int pos=1);
-	DVKey verify_DVKey(SCM, const char *, int pos=1);
-	DVKeySeq verify_DVKeySeq(SCM, const char *, int pos=1);
+	NdimBin verify_NdimBin(SCM, const char *, int pos=1);
+	NdimBinSeq verify_NdimBinSeq(SCM, const char *, int pos=1);
 	DistributionalValuePtr verify_dv(SCM, const char *, int pos = 1);
 	std::vector<DistributionalValuePtr> verify_dv_list(SCM, const char *,
 	                                                   int pos = 1);
 	ConditionalDVPtr verify_cdv(SCM, const char *, int pos = 1);
 
-	DVKey scm_to_DVKey(SCM);
-	DVKeySeq scm_to_DVKeySeq(SCM);
+	NdimBin scm_to_NdimBin(SCM);
+	NdimBinSeq scm_to_NdimBinSeq(SCM);
 	std::string dv_to_string(const DistributionalValuePtr&);
 
 }; // class

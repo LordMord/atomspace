@@ -30,8 +30,8 @@
 #include <vector>
 #include <limits>
 
-#include <opencog/util/Counter.h>
-#include <opencog/atoms/distvalue/ConditionalDV.h>
+#include <opencog/atoms/value/Value.h>
+#include <opencog/atoms/distvalue/Histogram.h>
 
 /** \addtogroup grp_atomspace
  *	@{
@@ -46,27 +46,19 @@ typedef double count_t;
 
 class DistributionalValue;
 
-typedef std::vector<double> DVec;
-
-typedef std::vector<double> Interval;
-
-typedef std::vector<Interval> DVKey;
-
-typedef std::vector<DVKey> DVKeySeq;
-
-typedef Counter<DVKey, double> DVCounter;
-
 typedef std::shared_ptr<const DistributionalValue> DistributionalValuePtr;
 
 class AtomSpace;
 
+/**
+ * This class is used for unconditional distributions which are stored as
+ * dirichlet distributions where each class is the bin of a multi dimensional
+ * histogram
+ */
 class DistributionalValue
 	: public Value
 {
-
-	friend class ConditionalDV;
-
-	DVCounter _value;
+	Histogram<double> _value;
 
 	// Disallow assignment -- truth values are immutable!
 	DistributionalValue& operator=(const DistributionalValue& rhs) {
@@ -78,55 +70,54 @@ public:
 	static count_t DEFAULT_K;
 
 	DistributionalValue();
-	DistributionalValue(const DVCounter&);
+	DistributionalValue(const Histogram<double>&);
 	DistributionalValue(double, double);
 
-	const DVCounter& value() const { return _value; }
+	const Histogram<double>& value() const { return _value; }
 
-	static DistributionalValuePtr UniformDistributionalValue(const DVKey&, int);
-	static DistributionalValuePtr UniformDistributionalValue(const DVKeySeq&, int);
+	static DistributionalValuePtr UniformDistributionalValue(const NBin&, int);
+	static DistributionalValuePtr UniformDistributionalValue(const NBinSeq&, int);
 	static DistributionalValuePtr TRUE_TV();
 	static DistributionalValuePtr FALSE_TV();
 	static DistributionalValuePtr DEFAULT_TV();
 	static DistributionalValuePtr createDV(double, double);
-	static DistributionalValuePtr createDV(const DVCounter&);
+	static DistributionalValuePtr createDV(const Histogram<double>&);
 
+	//Utility functions to convert between confidence and count
+	//Should this be moved elsewhere???
 	static double to_conf(int c);
 	static int to_count(double);
 
 	bool is_uniform() const;
 
-	std::vector<double> get_mode() const;
-	std::vector<double> get_mean() const;
-	std::vector<double> get_var() const;
+	//
+	std::vector<double> bin_modes() const;
+	std::vector<double> bin_means() const;
+	std::vector<double> bin_vars() const;
 
 	double get_fstord_mean() const;
-	DVec middle_of_interval(const DVKey&) const;
 
 	double get_mode_for(double) const;
 	double get_mean_for(double) const;
 	double get_var_for(double) const;
 
-	DistributionalValuePtr add_evidence(const DVKey&) const;
+	DistributionalValuePtr add_evidence(const NBin&) const;
 	DistributionalValuePtr merge(DistributionalValuePtr) const;
 	DistributionalValuePtr negate() const;
 
-	double min_count() const;
-	double max_count() const;
+	Interval minmax_count() const;
 
 	double total_count() const;
 	double get_confidence() const;
 
-	static double conditional_probabilty(const DVKey&, const DVKey&);
+	static double conditional_probabilty(const NBin&, const NBin&);
 
-	bool has_key(const DVKey&) const;
-	DVKeySeq get_keys() const;
-	double get_count(const DVKey&) const;
-	double get_contained_count(const DVKey&) const;
-	double get_mean(const DVKey&) const;
-	double get_contained_mean(const DVKey&) const;
-	double get_mode(const DVKey&) const;
-	double get_var(const DVKey&) const;
+	double get_count(const NBin&) const;
+	double get_contained_count(const NBin&) const;
+	double get_mean(const NBin&) const;
+	double get_contained_mean(const NBin&) const;
+	double get_mode(const NBin&) const;
+	double get_var(const NBin&) const;
 
 	virtual bool operator==(const Value& rhs) const;
 
@@ -154,4 +145,4 @@ std::string oc_to_string(const DistributionalValue&, const std::string&);
 } // namespace opencog
 
 /** @}*/
-#endif // _OPENCOG_TRUTH_VALUE_H
+#endif // _OPENCOG_DISTRIBUTIONAL_VALUE_H

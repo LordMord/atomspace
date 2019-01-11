@@ -40,23 +40,33 @@
 namespace opencog
 {
 
+/**
+ * This class contains Formulas for working with normal and conditional
+ * DistributionalValues. These Formulas are mainly used in PLN.
+ */
 class DVFormulas
 {
 
 public:
-	static DVec get_key_min(const DVKey&);
-	static DVec get_key_max(const DVKey&);
+	//Given a NdimBin for each Dimension/Interval it contains return it's
+	//starting point(min) or ending point(max)
+	static DVec get_key_min(const NdimBin&);
+	static DVec get_key_max(const NdimBin&);
 
-	//was divide
+	//Given P(X,Y) and P(X) calculate P(Y|X)
+	//using the formulae P(Y|X) = P(X,Y) / P(X)
 	static ConditionalDVPtr joint_to_cdv(DistributionalValuePtr,
 	                                     DistributionalValuePtr,
 	                                     int);
 
+	//Given P(X,Y) calculate P(X) for an idx of 0
+	//                    or P(Y) for an idx of 1
+	//using the formula P(X) = sum over all y P(X,y)
 	static DistributionalValuePtr sum_joint(DistributionalValuePtr, int);
 
-	static bool compare(const DVec&, const DVec&);
-	static bool floatCompare(double, double);
 
+	//Given P(X) and P(Y) caluclate P(X & Y)
+	//
 	static DistributionalValuePtr conjunction(DistributionalValuePtr,
 	                                          DistributionalValuePtr);
 	static DistributionalValuePtr disjunction(DistributionalValuePtr,

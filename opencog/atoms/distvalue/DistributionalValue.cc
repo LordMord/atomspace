@@ -43,7 +43,7 @@ DistributionalValue::DistributionalValue()
 	: Value(DISTRIBUTIONAL_VALUE)
 {}
 
-DistributionalValue::DistributionalValue(const DVCounter &dvctr)
+DistributionalValue::DistributionalValue(const Histogram<double> &dvctr)
 	: Value(DISTRIBUTIONAL_VALUE)
 {
 	for (auto elem : dvctr)
@@ -57,19 +57,19 @@ DistributionalValue::DistributionalValue(const DVCounter &dvctr)
 //Create a DV from the Parameters of a SimpleTV
 //Not recommended as it results in a DV with only 1 singleton set
 //which in some calculations is unusalbe as the chance of overlaps in the
-//Sets/Intervals is small
+//Sets/Bins is small
 DistributionalValue::DistributionalValue(double mode,double conf)
 	: Value(DISTRIBUTIONAL_VALUE)
 {
 	confidence_t cf = std::min(conf, 0.9999998);
 	double count = (DEFAULT_K * cf / (1.0 - cf));
-	//DV Interval with count 0 is undefined
+	//DV Bin with count 0 is undefined
 	count = std::max(count, 0.0000002);
-	DVKey k{Interval{mode}};
+	NBin k{Bin{mode,mode}};
 	_value[k] = count;
 }
 
-DistributionalValuePtr DistributionalValue::createDV(const DVCounter &dvctr)
+DistributionalValuePtr DistributionalValue::createDV(const Histogram<double> &dvctr)
 {
 	return std::make_shared<const DistributionalValue>(dvctr);
 }
@@ -81,18 +81,18 @@ DistributionalValuePtr DistributionalValue::createDV(double mode,
 }
 
 DistributionalValuePtr
-DistributionalValue::UniformDistributionalValue(const DVKey &k,int c)
+DistributionalValue::UniformDistributionalValue(const NBin &k,int c)
 {
-	DVCounter dvctr;
+	Histogram<double> dvctr;
 	dvctr[k] = c;
 	return createDV(dvctr);
 }
 
 
 DistributionalValuePtr
-DistributionalValue::UniformDistributionalValue(const DVKeySeq &ks,int c)
+DistributionalValue::UniformDistributionalValue(const NBinSeq &ks,int c)
 {
-	DVCounter dvctr;
+	Histogram<double> dvctr;
 	for (auto k : ks)
 	{
 		dvctr[k] = c;
@@ -105,9 +105,9 @@ DistributionalValuePtr DistributionalValue::TRUE_TV()
 	static DistributionalValuePtr instance;
 	if (instance == nullptr)
 	{
-		DVKey v1{Interval{1.0}};
-		DVKey v2{Interval{0.0}};
-		DVCounter dvc;
+		NBin v1{Bin{1.0}};
+		NBin v2{Bin{0.0}};
+		Histogram<double> dvc;
 		dvc[v1] = 1;
 		dvc[v2] = 0;
 		instance = std::make_shared<const DistributionalValue>(dvc);
@@ -119,9 +119,9 @@ DistributionalValuePtr DistributionalValue::FALSE_TV()
 	static DistributionalValuePtr instance;
 	if (instance == nullptr)
 	{
-		DVKey v1{Interval{1.0}};
-		DVKey v2{Interval{0.0}};
-		DVCounter dvc;
+		NBin v1{Bin{1.0}};
+		NBin v2{Bin{0.0}};
+		Histogram<double> dvc;
 		dvc[v1] = 0;
 		dvc[v2] = 1;
 		instance = std::make_shared<const DistributionalValue>(dvc);
@@ -133,9 +133,9 @@ DistributionalValuePtr DistributionalValue::DEFAULT_TV()
 	static DistributionalValuePtr instance;
 	if (instance == nullptr)
 	{
-		DVKey v1{Interval{1.0}};
-		DVKey v2{Interval{0.0}};
-		DVCounter dvc;
+		NBin v1{Bin{1.0}};
+		NBin v2{Bin{0.0}};
+		Histogram<double> dvc;
 		dvc[v1] = 0;
 		dvc[v2] = 0;
 		instance = std::make_shared<const DistributionalValue>(dvc);
@@ -156,11 +156,11 @@ bool DistributionalValue::is_uniform() const
 	return true;
 }
 
-//Add Evidence for the provided key i.e increment the count of this Interval
+//Add Evidence for the provided key i.e increment the count of this Bin
 //Returns a new DVPtr with the update count
-DistributionalValuePtr DistributionalValue::add_evidence(const DVKey &h) const
+DistributionalValuePtr DistributionalValue::add_evidence(const NBin &h) const
 {
-	DVCounter newdvc = _value;
+	Histogram<double> newdvc = _value;
 	newdvc[h] += 1;
 	return createDV(newdvc);
 }
@@ -169,7 +169,7 @@ DistributionalValuePtr DistributionalValue::add_evidence(const DVKey &h) const
 //and returns this new one ass a result
 DistributionalValuePtr DistributionalValue::merge(DistributionalValuePtr other) const
 {
-	DVCounter newdvc = _value;
+	Histogram<double> newdvc = _value;
 	newdvc += other->_value;
 	return createDV(newdvc);
 }
@@ -178,8 +178,8 @@ DistributionalValuePtr DistributionalValue::merge(DistributionalValuePtr other) 
 DistributionalValuePtr DistributionalValue::negate() const
 {
 	Interval minmax = minmax_count();
-	double total = minmax[0] + minmax[1];
-	DVCounter res;
+	double total = minmax.left + minmax.right;
+	Histogram<double> res;
 	for (auto elem : _value)
 	{
 		res[elem.first] = total - elem.second;
@@ -190,18 +190,18 @@ DistributionalValuePtr DistributionalValue::negate() const
 //Get the lowest and highest count of all Interals
 Interval DistributionalValue::minmax_count() const
 {
-	Interval minmax = Interval{std::numeric_limits<double>::max(),0};
+	Interval minmax = Bin{std::numeric_limits<double>::max(),0};
 	for (auto elem : _value)
 	{
-		if (minmax[0] >= elem.second)
-			minmax[0] = elem.second;
-		if (minmax[1] <= elem.second)
-			minmax[1] = elem.second;
+		if (minmax.left >= elem.second)
+			minmax.left = elem.second;
+		if (minmax.right <= elem.second)
+			minmax.right = elem.second;
 	}
 	return minmax;
 }
 
-std::vector<double> DistributionalValue::get_mode() const
+std::vector<double> DistributionalValue::bin_modes() const
 {
 	std::vector<double> probs;
 	for (auto elem : _value)
@@ -216,7 +216,7 @@ double DistributionalValue::get_mode_for(double ai) const
 	return (ai - 1) / (total_count() - _value.size());
 }
 
-std::vector<double> DistributionalValue::get_mean() const
+std::vector<double> DistributionalValue::bin_means() const
 {
 	std::vector<double> probs;
 	for (auto elem : _value)
@@ -243,27 +243,15 @@ double DistributionalValue::get_fstord_mean() const
 	for (auto elem : _value)
 	{
 		//TODO: Is mode correct or should i use mean?
-		DVec mof = middle_of_interval(elem.first);
+		DVec mof = Histogram<double>::center_of_bin(elem.first);
 		double mode = std::accumulate(mof.begin(),mof.end(),0.0)/mof.size();
 		res = res + mode * get_mode_for(elem.second);
 	}
 	return res;
 }
 
-//Calculates the Middle of all intervals in a Key
-DVec DistributionalValue::middle_of_interval(const DVKey &k) const
-{
-	DVec res;
-	for (auto interval : k) {
-		if (interval.size() == 1)
-			res.push_back(interval[0]);
-		res.push_back((interval[0] + interval[1])/2);
-	}
-	return res;
-}
-
 //Get the variance for all Keys
-std::vector<double> DistributionalValue::get_var() const
+std::vector<double> DistributionalValue::bin_vars() const
 {
 	std::vector<double> probs;
 	for (auto elem : _value)
@@ -301,21 +289,7 @@ int DistributionalValue::to_count(double cf)
 	return (cf * DEFAULT_K / (1 - cf));
 }
 
-bool DistributionalValue::has_key(const DVKey &k) const
-{
-	auto it = _value.find(k);
-	return it != _value.end();
-}
-
-DVKeySeq DistributionalValue::get_keys() const
-{
-	DVKeySeq res;
-	for (auto k : _value)
-		res.push_back(k.first);
-	return res;
-}
-
-double DistributionalValue::get_count(const DVKey &h) const
+double DistributionalValue::get_count(const NBin &h) const
 {
 	auto pos = _value.find(h);
 	if (pos != _value.end())
@@ -326,53 +300,33 @@ double DistributionalValue::get_count(const DVKey &h) const
 //Find out how much of Key1 is contained in Key2
 //The Keys can be considered continuous uniform distributions
 //This calculates the conditional_probabilty of Key2 given Key1
-double DistributionalValue::conditional_probabilty(const DVKey &ks1,const DVKey &ks2)
+double DistributionalValue::conditional_probabilty(const NBin &ks1,const NBin &ks2)
 {
-	Interval k1,k2;
+	Bin k1,k2;
 	//Start with the assumption that 100% of Key1 is in Key2
 	double sum = 1;
 	for (auto zipped : boost::combine(ks1,ks2))
 	{
-		std::tie(k1,k2) = zipped;
-		//Singleton Intervals are equal => assumption is correct and we can continue
-		if (k1.size() == 1 && 1 == k2.size() && k1[0] == k2[0])
-			continue;
-
-		//Singleton Intervals are different => no overlap return 0
-		if (k1.size() == 1 && 1 == k2.size() && k1[0] != k2[0])
-			return 0;
-
-		//Singleton Interval of Key1 is contained completely in Interval of Key2
-		if (k1.size() == 1 && 2 == k2.size() && k1[0] > k2[0] && k1[0] < k2[1])
-			continue;
-
-		//Singleton Interval of Key1 isn't contained in Interval of Key2
-		if (k1.size() == 1 && 2 == k2.size() && (k1[0] < k2[0] || k1[0] > k2[1]))
-			return 0;
-
-		// The part of an interval contained in a sigelton set is infinitelly small
-		if (k1.size() == 2 && 1 == k2.size())
-			return 0;
-
-		//Two Intervals
+		boost::tie(k1,k2) = zipped;
+		//Two Bins
 		//Calculate the overlapp
-		Interval res;
+		Bin res;
 		//Find the start of the Overlapp
-		if (k1[0] > k2[0])
-			res.push_back(k1[0]);
+		if (k1.left > k2.left)
+			res.left = k1.left;
 		else
-			res.push_back(k2[0]);
+			res.left = k2.left;
 
 		//Find the end of the Overlapp
-		if (k1[1] < k2[1])
-			res.push_back(k1[1]);
+		if (k1.right < k2.right)
+			res.right = k1.right;
 		else
-			res.push_back(k2[1]);
+			res.right = k2.right;
 
 		//Check that the Overlapp starts before it ends
-		if (res[0] <= res[1])
+		if (res.left <= res.right)
 			//Figure out how much smaler the Overlapp is then K1
-			sum *= (res[1] - res[0]) / (k1[1] - k1[0]);
+			sum *= (res.right - res.left) / (k1.right - k1.left);
 		else
 			return 0;
 	}
@@ -382,7 +336,7 @@ double DistributionalValue::conditional_probabilty(const DVKey &ks1,const DVKey 
 //Get the Count of a Key that might not be in the DV explicitly
 //by a weighted sum of all the Keys that are in the DV
 //weighted by the overlapp of the given Key with the Keys of the DV
-double DistributionalValue::get_contained_count(const DVKey &h) const
+double DistributionalValue::get_contained_count(const NBin &h) const
 {
 	double res = 0;
 	for (auto v : _value)
@@ -393,19 +347,19 @@ double DistributionalValue::get_contained_count(const DVKey &h) const
 	return res;
 }
 
-double DistributionalValue::get_mode(const DVKey &val) const
+double DistributionalValue::get_mode(const NBin &val) const
 {
 	return get_mode_for(get_count(val));
 }
-double DistributionalValue::get_mean(const DVKey &val) const
+double DistributionalValue::get_mean(const NBin &val) const
 {
 	return get_mean_for(get_count(val));
 }
-double DistributionalValue::get_contained_mean(const DVKey &val) const
+double DistributionalValue::get_contained_mean(const NBin &val) const
 {
 	return get_mean_for(get_contained_count(val));
 }
-double DistributionalValue::get_var(const DVKey &val) const
+double DistributionalValue::get_var(const NBin &val) const
 {
 	return get_var_for(get_count(val));
 }
@@ -418,16 +372,13 @@ std::string DistributionalValue::to_string(const std::string& indent) const
 	for (auto elem : _value)
 	{
 		ss << indent << "{";
-		for (auto interval : elem.first)
+		for (auto bin : elem.first)
 		{
-			if (interval.size() == 1)
-				ss << interval[0] << ";";
-			else
-				ss << "["
-				   << interval[0]
-				   << ","
-				   << interval[1]
-				   << ");";
+			ss << "["
+			   << bin.left
+			   << ","
+			   << bin.right
+			   << ");";
 		}
 		ss.seekp(-1,std::ios_base::end);
 		ss << "}"

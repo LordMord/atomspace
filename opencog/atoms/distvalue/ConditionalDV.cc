@@ -43,7 +43,7 @@ ConditionalDV::ConditionalDV(const CDVrep &rep)
 	_value = rep;
 }
 
-ConditionalDV::ConditionalDV(const DVKeySeq &conds,
+ConditionalDV::ConditionalDV(const NdimBinSeq &conds,
                              const std::vector<DistributionalValuePtr> &dvs)
 	: Value(CONDITIONAL_DISTRIBUTIONAL_VALUE)
 {
@@ -76,16 +76,16 @@ ConditionalDVPtr ConditionalDV::createCDV(const CDVrep &rep)
 	return std::make_shared<const ConditionalDV>(rep);
 }
 
-ConditionalDVPtr ConditionalDV::createCDV(const DVKeySeq &conds,
+ConditionalDVPtr ConditionalDV::createCDV(const NdimBinSeq &conds,
                                           const std::vector<DistributionalValuePtr> &dvs)
 {
 	return std::make_shared<const ConditionalDV>(conds,dvs);
 }
 
 //Get all the Conditions
-DVKeySeq ConditionalDV::get_conditions() const
+NdimBinSeq ConditionalDV::get_conditions() const
 {
-	DVKeySeq res;
+	NdimBinSeq res;
 	for (auto gdtvpart : _value)
 	{
 		res.push_back(gdtvpart.first);
@@ -108,9 +108,9 @@ std::vector<DistributionalValuePtr> ConditionalDV::get_unconditionals() const
  * Merge unconditional weighted based on the overlap of the given Interval
  * to the condition interval
  */
-DVCounter ConditionalDV::get_unconditionalP(const DVKey &h) const
+Histogram<double> ConditionalDV::get_unconditionalP(const NdimBin &h) const
 {
-	DVCounter res;
+	Histogram<double> res;
 	for (auto elem : _value)
 	{
 		double weight = DistributionalValue::conditional_probabilty(h,elem.first);
@@ -122,9 +122,9 @@ DVCounter ConditionalDV::get_unconditionalP(const DVKey &h) const
 	return res;
 }
 
-DistributionalValuePtr ConditionalDV::get_unconditional(const DVKey &k) const
+DistributionalValuePtr ConditionalDV::get_unconditional(const NdimBin &k) const
 {
-	DVCounter res = get_unconditionalP(k);
+	Histogram<double> res = get_unconditionalP(k);
 	return DistributionalValue::createDV(res);
 }
 
@@ -134,11 +134,11 @@ DistributionalValuePtr ConditionalDV::get_unconditional(const DVKey &k) const
  */
 DistributionalValuePtr ConditionalDV::get_unconditional(DistributionalValuePtr condDist) const
 {
-	DVCounter res;
+	Histogram<double> res;
 	for (auto v : condDist->_value)
 	{
 		double val = condDist->get_mean_for(v.second);
-		DVCounter tmp = get_unconditionalP(v.first) * val;
+		Histogram<double> tmp = get_unconditionalP(v.first) * val;
 		res += tmp;
 	}
 	res = res;
@@ -171,13 +171,13 @@ double ConditionalDV::avg_count() const
 //Given a Distribution of the Condition calculate a Joint Probability distribution
 DistributionalValuePtr ConditionalDV::get_joint_probability(DistributionalValuePtr base) const
 {
-	DVCounter res;
-	DVKeySeq ivsBASE = base->get_keys();
+	Histogram<double> res;
+	NBinSeq ivsBASE = base->get_bins();
 	for (auto k1 : ivsBASE) {
 		DistributionalValuePtr uncond = get_unconditional(k1);
-		DVKeySeq ivsTHIS = uncond->get_keys();
+		NBinSeq ivsTHIS = uncond->get_bins();
 		for (auto k2 : ivsTHIS) {
-			DVKey k;
+			NdimBin k;
 			k.insert(k.end(),k1.begin(),k1.end());
 			k.insert(k.end(),k2.begin(),k2.end());
 
@@ -198,7 +198,7 @@ ConditionalDVPtr ConditionalDV::merge(ConditionalDVPtr cdv2) const
 		{
 			DistributionalValuePtr dv1 = DistributionalValue::createDV(elem1.second);
 			DistributionalValuePtr dv2 = DistributionalValue::createDV(elem2.second);
-			DVKey k;
+			NdimBin k;
 			k.insert(k.end(),elem1.first.begin(),elem1.first.end());
 			k.insert(k.end(),elem2.first.begin(),elem2.first.end());
 			res[k] = dv1->merge(dv2)->_value;
