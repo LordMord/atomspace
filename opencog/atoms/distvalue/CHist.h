@@ -25,62 +25,162 @@
 #define _OPENCOG_CHIST_H
 
 #include <vector>
+#include <string>
 
 namespace opencog
 {
 
-typedef std::pair<double,double> elem;
+typedef unsigned int uint;
 
-template <size_t len>
 struct Node {
-	int *pos;
+	double *pos;
 	double count;
 };
 
-template <size_t len>
 class CHist
 {
-	int size;
-	int count;
-	int subs;
-	int dimensions;
-	std::vector<pos_t> limits;
-	std::vector<Node<pos_t>> nodes;
-	int (*cmp)(const pos_t&,const pos_t&);
-	double (*dist)(const pos_t&,const pos_t&);
+	uint size;
+	uint count;
+	uint subs;
+	uint dimensions;
+	std::vector<double*> limits;
+	std::vector<Node> nodes;
+	uint cmp(double*,double*);
+	double dist(double*,double*);
 
-	int parent(int);
-	int child(int, int);
-	int height(int);
-	int child_opposite(int);
+	/*
+	 * Given the index of a node
+	 * find the index of it's parent
+	 */
+	uint parent(uint);
 
-	void move_to(int, int);
-	void shift_down(int, int);
-	void rotate_up(int);
-	void rebalance(int);
-	void make_space(int,int);
+	/*
+	 * Given the index of a node
+	 * and a direction to the child
+	 * find the index of this child
+	 */
+	uint child(uint, uint);
 
-	int min_max_heights(int, int*, int*);
+	/*
+	 * Given the index of a node
+	 * find the height of the sub-tree
+	 * starting at the index
+	 */
+	uint height(uint);
 
-	int max_height_child(int);
+	/*
+	 * Given a Direction to a Child
+	 * Find the Opposite Direction
+	 */
+	uint child_opposite(uint);
 
-	void merge(int, pos_t, double);
+	/*
+	 * Given 2 indices move the sub-tree starting at the first
+	 * to the location of the second. Overwrites anything at
+	 * the target location.
+	 * Target Location should not be of the sub-tree to be moved.
+	 */
+	void move_to(uint, uint);
 
-	void insertFill(pos_t,double);
-	void insertMerge(pos_t,double);
+	/*
+	 * Move down the subtree at the given Index
+	 * in the given direction
+	 */
+	void shift_down(uint, uint);
 
-	void dumpP(int idx);
-	void print(int, int);
+	/*
+	 * Given the Index of a Node. Rotate the tree such that
+	 * the Node ends up in the position of it's parent.
+	 */
+	void rotate_up(uint);
+
+	/*
+	 * Check if the Tree needs to be rebalanced at the given Index
+	 * and all it's parents. And if needed does the rebalancing.
+	 */
+	void rebalance(uint);
+
+	/*
+	 * If we want to add a node but there is no space in the tree anymore
+	 * see if we can rotate the tree such that a space opens up in the
+	 * requried position without destroying the order.
+	 */
+	void make_space(uint,uint);
+
+	/*
+	 * Helper function that given an Index stores the min and max
+	 * height of the Nodes Childrend in argument 2 and 3
+	 * and returns the Index of the Child with max height
+	 */
+	uint min_max_heights(uint, uint*, uint*);
+
+	/*
+	 * Helper function to find the Index of the Child of the given Node
+	 * that has the highest height
+	 */
+	uint max_height_child(uint);
+
+	/*
+	 * Given an Index a postiona and count
+	 * Merge the Position of the Node with the given
+	 * weighted by the counts
+	 */
+	void mergeNode(uint, double*, double);
+
+	/*
+	 * Insert a value into the Tree trying to fill it
+	 * and rebalance if required
+	 */
+	void insertFill(double*,double);
+
+	/*
+	 * For when the Tree is alredy full.
+	 * Find the closest Node to the provided value an merge them
+	 */
+	void insertMerge(double*,double);
+
+	/*
+	 * Helpers for the dump/print/insert function
+	 */
+	void dumpP(uint idx);
+	void print(uint, uint);
+	void insertP(double *, double);
+
+	/*
+	 * Convert a Position to a String for printing
+	 */
+	std::string to_string(double*);
+
+	/*
+	 * Helpers for calculation with Positions
+	 */
+	double* mul(double *, double);
+	double* div(double *, double);
+	double* add(double *, double *);
+
 public:
-	CHist(int,int,int (*)(const pos_t&, const pos_t&),
-	      double (*)(const pos_t&, const pos_t&));
+	CHist(uint,uint);
 
-	void insert(pos_t,double);
+	~CHist();
 
-	static CHist<pos_t> merge(CHist<pos_t>, CHist<pos_t>);
+	/*
+	 * Insert a Value into the Histogram
+	 */
+	void insert(std::vector<double>, double);
 
+	/*
+	 * Merge 2 Histograms into 1
+	 */
+	static CHist merge(const CHist, const CHist);
+
+	/*
+	 * Dump the Histogram for displaying it via Python Script
+	 */
 	void dump();
 
+	/*
+	 * Print the Histogram Tree
+	 */
 	void print();
 };
 
