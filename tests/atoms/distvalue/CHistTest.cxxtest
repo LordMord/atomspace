@@ -1,0 +1,163 @@
+/*
+ * Copyright (C) 2019 SingularityNet
+ * All Rights Reserved
+ *
+ * Written by Roman Treutlein <roman@singularitynet.io>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License v3 as
+ * published by the Free Software Foundation and including the exceptions
+ * at http://opencog.org/wiki/Licenses
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program; if not, write to:
+ * Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
+
+#include <opencog/atoms/distvalue/CHist.h>
+
+#include <random>
+
+#include <utility>
+
+using namespace opencog;
+
+class CHistTest :  public CxxTest::TestSuite
+{
+private:
+
+public:
+	CHistTest() {}
+
+	void setUp() {}
+
+	void tearDown() {}
+
+	void testCHist()
+	{
+		typedef std::vector<double> DVec;
+
+		std::cout << std::endl;
+		//auto comp = [](const double& a,const double& b)
+		//				{
+		//					if (a < b)
+		//						return 2;
+		//					else if (a > b)
+		//						return 1;
+		//					else
+		//						return 0;
+		//				};
+		//auto dist = [](const double& a,const double& b)
+		//				{
+		//					return fabs(a - b);
+		//				};
+		std::mt19937 gen{2};
+
+		std::normal_distribution<double> nd1{0.2,0.1};
+
+		std::normal_distribution<double> nd2{0.8,0.1};
+
+		std::uniform_real_distribution<double> ud(0,1);
+
+		//CHist hist1 = CHist(31,1);
+		//CHist hist2 = CHist(31,1);
+
+		//for (int i = 0; i < 10000; i++)
+		//{
+		//	double pos = nd1(gen);
+		//	hist1.insert(DVec{pos},1.0);
+		//}
+
+		//for (int i = 0; i < 10000; i++)
+		//{
+		//	double pos = nd2(gen);
+		//	hist2.insert(DVec{pos},1.0);
+		//}
+
+		//CHist hist = CHist::merge(hist1,hist2);
+		CHist hist = CHist(7,1);
+		std::cout << "START\n";
+		hist.insert(DVec{1.0},1.0);
+		hist.print();
+		hist.insert(DVec{2.0},1.0);
+		//hist.print();
+		hist.insert(DVec{3.0},1.0);
+		//hist.print();
+		hist.insert(DVec{4.0},1.0);
+		//hist.print();
+		hist.insert(DVec{5.0},1.0);
+		//hist.print();
+		hist.insert(DVec{6.0},1.0);
+		//hist.print();
+		hist.insert(DVec{7.0},1.0);
+
+		hist.print();
+		hist.dump();
+
+		uint idx = 3;
+		uint dir = 2;
+		for (int i = 0; i < 7; i++)
+		{
+			std::cout << "idx,dir: " << idx << "," << dir << std::endl;
+			idx = hist.next(idx,dir);
+		}
+
+		CHist hist2D = CHist(5,2);
+		std::cout << "START\n";
+		hist2D.insert(DVec{2.0,2.0},2.0);
+		hist2D.print();
+		hist2D.insert(DVec{1.0,1.9},1.0);
+		hist2D.print();
+		hist2D.insert(DVec{1.0,2.1},6.0);
+		hist2D.print();
+		hist2D.insert(DVec{3.0,1.0},1.0);
+		hist2D.print();
+		hist2D.insert(DVec{3.0,3.0},3.0);
+
+		hist2D.print();
+		hist2D.dump();
+
+		std::cout << "START ITERATOR\n";
+		for (Node n : hist2D)
+		{
+			std::cout << Node::to_string(hist2D,n) << std::endl;
+		}
+
+		std::cout << "AVG: " << hist2D.get_avg(DVec{1,2}) << std::endl;
+
+		//auto compElem = [](const elem& a,const elem& b)
+		//					{
+		//						if (a.first < b.first && a.second <= b.second)
+		//							return 4;
+		//						else if (a.first <= b.first && a.second > b.second)
+		//							return 3;
+		//						else if (a.first >= b.first && a.second < b.second)
+		//							return 2;
+		//						else if (a.first > b.first && a.second >= b.second)
+		//							return 1;
+		//						else
+		//							return 0;
+		//					};
+		//auto distElem = [](const elem& a,const elem& b)
+		//					{
+		//						return sqrt( pow(a.first - b.first,2)
+		//						           + pow(a.second - b.second,2));
+		//					};
+		//CHist<elem> hist2D = CHist<elem>(16,2,compElem,distElem);
+
+		//hist2D.insert(elem(2,2),1.0);
+		//hist2D.insert(elem(1,1),1.0);
+		//hist2D.insert(elem(1,3),1.0);
+		//hist2D.insert(elem(3,1),1.0);
+		//hist2D.insert(elem(3,3),1.0);
+
+		//hist2.print();
+
+	}
+};

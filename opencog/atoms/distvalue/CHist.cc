@@ -20,9 +20,9 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-
 #include <opencog/atoms/distvalue/CHist.h>
 #include <opencog/util/exceptions.h>
+#include <opencog/util/numeric.h>
 #include <stdio.h>
 #include <cmath>
 #include <sstream>
@@ -31,87 +31,112 @@
 
 using namespace opencog;
 
-double* CHist::mul(double * ds, double d)
+double* CHist::mul(double * ds, double d) const
 {
-	for (uint i = 0; i < dimensions; i++)
+	for (uint i = 0; i < _dimensions; i++)
 	{
 		*(ds+i) = *(ds+i) * d;
 	}
 	return ds;
 }
 
-double* CHist::add(double * ds1, double * ds2)
+double* CHist::add(double * ds1, double * ds2) const
 {
-	for (uint i = 0; i < dimensions; i++)
+	for (uint i = 0; i < _dimensions; i++)
 		*(ds1+i) = *(ds1+i) + *(ds2+i);
 	return ds1;
 }
 
-double* CHist::div(double * ds, double d)
+double* CHist::div(double * ds, double d) const
 {
-	for (uint i = 0; i < dimensions; i++)
+	for (uint i = 0; i < _dimensions; i++)
 		*(ds+i) = *(ds+i) / d;
 	return ds;
 }
 
+bool CHist::eq(double * ds1, double * ds2) const
+{
+	for (uint i = 0; i < _dimensions; i++)
+		if (!is_approx_eq_ulp(*(ds1+i),*(ds2+i),24))
+			return false;
+	return true;
+}
+
+bool CHist::eq(const Node &n1,const Node &n2) const
+{
+	return (eq(n1.pos,n2.pos) && n1.count == n2.count);
+}
+
 CHist::CHist(uint s,uint d)
-	: size(s) , count(0) , subs(pow(2,d)) , dimensions(d)
+	: _size(s) , _count_elems(0) , _total_count(0)
+	, _subs(pow(2,d)) , _dimensions(d)
 {
 	if (d >= 32)
 		throw RuntimeException(TRACE_INFO,"More then 31 Dimensions not supported.");
 	nodes.resize(s);
-	limits.resize(subs);
+	limits.resize(_subs);
+
+	auto size = sizeof(double)*_dimensions;
+	for (uint i = 0; i < _subs; i++)
+	{
+		limits[i] = (double*)malloc(size);
+		if(limits[i] == nullptr)
+			throw RuntimeException(TRACE_INFO,"Malloc Failed");
+	}
 }
 
 CHist::~CHist()
 {
 	for (Node elem : nodes)
 		delete[] elem.pos;
+	for (auto elem : limits)
+		delete[] elem;
 }
 
-uint CHist::cmp(double *p1, double *p2)
+uint CHist::cmp(double *p1, double *p2) const
 {
 	uint res = 0;
-	for (uint i = 0; i < dimensions; i++)
+	for (uint i = 0; i < _dimensions; i++)
 	{
-		if (*(p1+i) < *(p2+i))
+		if (*(p1+i) <= *(p2+i))
 			res = res | (1 << i);
 	}
+	//printf("Cmp p1,p2,res: %f,%f,%i \n",*p1,*p2,res);
 	return (res+1);
 }
 
-double CHist::dist(double *p1, double *p2)
+double CHist::dist(double *p1, double *p2) const
 {
-	if (dimensions == 1)
+	if (_dimensions == 1)
 		return fabs(*p1 - *p2);
 	else
 	{
 		double res = 0;
-		for (uint i = 0; i < dimensions; i++)
+		for (uint i = 0; i < _dimensions; i++)
 			res += pow(*(p1+i) - *(p2+i),2);
 		return sqrt(res);
 	}
 }
 
-uint CHist::parent(uint idx)
+uint CHist::parent(uint idx) const
 {
 	if (idx == 0)
 		throw RuntimeException(TRACE_INFO,"No parent for root node.");
-	return (idx - 1) / subs;
+	return (idx - 1) / _subs;
 }
 
-uint CHist::child(uint idx,uint child)
+uint CHist::child(uint idx,uint child) const
 {
-	return idx * subs + child;
+	return idx * _subs + child;
 }
 
 
-uint CHist::height(uint idx)
+uint CHist::height(uint idx) const
 {
-	if (idx >= size || nodes[idx].count == 0)
+	if (idx >= _size || nodes[idx].count == 0)
 		return 0;
 	uint max = 0;
-	for (uint i = 1; i <= subs; i ++)
+	for (uint i = 1; i <= _subs; i ++)
 	{
 		uint tmp = height(child(idx,i));
 		if (tmp > max)
@@ -126,13 +151,13 @@ uint CHist::height(uint idx)
 //FIXME: Add check against this ^
 void CHist::move_to(uint idx,uint towards)
 {
-	if (nodes[idx].count == 0 || idx >= size)
+	if (nodes[idx].count == 0 || idx >= _size)
 		return;
 
 	nodes[towards] = nodes[idx];
 	nodes[idx].pos = nullptr;
 	nodes[idx].count = 0;
-	for (uint i = 1; i <= subs; i ++)
+	for (uint i = 1; i <= _subs; i ++)
 	{
 		move_to(child(idx,i),child(towards,i));
 	}
@@ -143,7 +168,7 @@ void CHist::move_to(uint idx,uint towards)
 //dir: Direction of shift, not an index
 void CHist::shift_down(uint idx,uint dir)
 {
-	if (nodes[idx].count == 0 || idx >= size)
+	if (nodes[idx].count == 0 || idx >= _size)
 		return;
 
 	//First Shift down the child in the specified direction
@@ -151,7 +176,7 @@ void CHist::shift_down(uint idx,uint dir)
 	shift_down(child(idx,dir),dir);
 
 	uint towards = child(idx,dir);
-	for (uint i = 1; i <= subs; i ++)
+	for (uint i = 1; i <= _subs; i ++)
 	{
 		if (i == dir) //We already did this.
 			continue;
@@ -162,23 +187,23 @@ void CHist::shift_down(uint idx,uint dir)
 	nodes[idx].count = 0;
 }
 
-uint CHist::child_opposite(uint child_idx)
+uint CHist::child_opposite(uint child_idx) const
 {
-	return child_idx + subs - 1 - 2 * (child_idx - 1);
+	return child_idx + _subs - 1 - 2 * (child_idx - 1);
 }
 
 void CHist::rotate_up(uint idx)
 {
-	if (nodes[idx].count == 0 || idx >= size)
+	if (nodes[idx].count == 0 || idx >= _size)
 		return;
 
 	uint p = parent(idx);
 
-	uint child_idx = idx - p * subs;
+	uint child_idx = idx - p * _subs;
 	uint child_opp = child_opposite(child_idx);
 
 	//Move down the parrents Children except idx
-	for (uint i = 1; i <= subs; i ++)
+	for (uint i = 1; i <= _subs; i ++)
 	{
 		if (i == child_idx)
 			continue;
@@ -200,7 +225,7 @@ void CHist::rotate_up(uint idx)
 	nodes[idx].count = 0;
 
 	//Move Idx's children Upwards except child_opp
-	for (uint i = 1; i <= subs; i ++)
+	for (uint i = 1; i <= _subs; i ++)
 	{
 		if (i == child_opp)
 			continue;
@@ -209,12 +234,12 @@ void CHist::rotate_up(uint idx)
 
 }
 
-uint CHist::min_max_heights(uint idx, uint *min, uint *max)
+uint CHist::min_max_heights(uint idx, uint *min, uint *max) const
 {
-	*min = size;
+	*min = _size;
 	*max = 0;
 	uint max_idx = -1;
-	for (uint i = 1; i <= subs; i ++)
+	for (uint i = 1; i <= _subs; i ++)
 	{
 		uint tmp = height(child(idx,i));
 		if (tmp > *max)
@@ -228,11 +253,11 @@ uint CHist::min_max_heights(uint idx, uint *min, uint *max)
 	return max_idx;
 }
 
-uint CHist::max_height_child(uint idx)
+uint CHist::max_height_child(uint idx) const
 {
 	uint max = 0;
 	uint max_idx = -1;
-	for (uint i = 1; i <= subs; i ++)
+	for (uint i = 1; i <= _subs; i ++)
 	{
 		uint tmp = height(child(idx,i));
 		if (tmp > max)
@@ -244,6 +269,11 @@ uint CHist::max_height_child(uint idx)
 	return max_idx;
 }
 
+uint CHist::get_dir(uint p,uint c) const
+{
+	return c - p * _subs;
+}
+
 void CHist::rebalance(uint idx)
 {
 	while (true)
@@ -251,7 +281,7 @@ void CHist::rebalance(uint idx)
 		uint min;
 		uint max;
 		uint max_idx = min_max_heights(idx,&min,&max);
-		uint child_idx = max_idx - idx * subs;
+		uint child_idx = get_dir(idx,max_idx);
 		uint child_opp = child_opposite(child_idx);
 
 		//std::cout << " idx: " << idx << " min: " << min
@@ -308,37 +338,45 @@ void CHist::mergeNode(uint idx, double * pos,double c)
 	n.pos = div(add(mul(n.pos,n.count),mul(pos,c)),(n.count + c));
 	n.count += c;
 
-	if (std::none_of(limits.begin(),limits.end(),
-	                 [pos](double *l){ return pos == l;}))
-		delete[] pos;
+	delete[] pos;
 }
 
-void CHist::insert(std::vector<double> posv,double c)
+
+double * CHist::vecToArray(DVec vec) const
 {
-	if (posv.size() != dimensions)
-		throw RuntimeException(TRACE_INFO,"Position Vector needs to be the same lenght as the number of dimensions!");
+	if (vec.size() != _dimensions)
+		throw RuntimeException(TRACE_INFO,"Vector needs to be the same lenght as the number of dimensions!");
 
-	auto size = sizeof(double)*dimensions;
-	double * pos = (double*)malloc(size);
-	memcpy(pos,&posv[0],size);
+	auto size = sizeof(double)*_dimensions;
+	double * arr = (double*)malloc(size);
+	memcpy(arr,&vec[0],size);
 
-	insertP(pos,c);
+	return arr;
 }
 
-void CHist::insertP(double * pos,double c)
+void CHist::insert(DVec posv,double c)
 {
-	if (count == 0)
-		std::fill(limits.begin(),limits.end(),pos);
+	return insert(vecToArray(posv),c);
+}
+
+void CHist::insert(double * pos,double c)
+{
+	//Update limits if necesary
+	auto size = sizeof(double)*_dimensions;
+	if (_count_elems == 0)
+		for (uint i = 1; i <= _subs; i++)
+			memcpy(limits[i-1],pos,size);
 	else
-		for (uint i = 1; i <= subs; i++)
+		for (uint i = 1; i <= _subs; i++)
 			if (i == cmp(limits[i-1],pos))
-				limits[i-1] = pos;
+				memcpy(limits[i-1],pos,size);
 
-	//std::cout << "s,c: " << size << "," << count << "," << to_string(pos) << "\n";
-	if (size == count)
+	//std::cout << "s,c: " << _size << "," << _count_elems << "," << to_string(pos) << "\n";
+	if (_size == _count_elems)
 		insertMerge(pos,c);
 	else
 		insertFill(pos,c);
+	_total_count++;
 }
 
 void CHist::insertFill(double * pos,double c)
@@ -346,11 +384,11 @@ void CHist::insertFill(double * pos,double c)
 	uint i;
 	double mindist = std::numeric_limits<double>::infinity();
 	uint minidx = -1;
-	for (i = 0; i < size; )
+	for (i = 0; i < _size; )
 	{
 		if (nodes[i].count == 0)
 		{
-			count++;
+			_count_elems++;
 			nodes[i].pos = pos;
 			nodes[i].count = c;
 
@@ -384,7 +422,7 @@ void CHist::insertFill(double * pos,double c)
 	if (cmp(nodes[idx].pos,pos) == cmp(nodes[parent(idx)].pos,nodes[idx].pos))
 	{
 		uint p = parent(idx);
-		uint dir = idx - p * subs;
+		uint dir = get_dir(p,idx);
 		//std::cout << "Before make_space\n";
 		//print();
 		make_space(p,dir);
@@ -392,7 +430,7 @@ void CHist::insertFill(double * pos,double c)
 		//print();
 		if (nodes[idx].count == 0)
 		{
-			count++;
+			_count_elems++;
 			nodes[idx].pos = pos;
 			nodes[idx].count = c;
 			return;
@@ -407,7 +445,7 @@ void CHist::insertMerge(double * pos,double c)
 	uint i;
 	double mindist = std::numeric_limits<double>::infinity();
 	uint minidx = -1;
-	for (i = 0; i < size; )
+	for (i = 0; i < _size; )
 	{
 		if (nodes[i].pos == pos)
 		{
@@ -440,43 +478,224 @@ void CHist::insertMerge(double * pos,double c)
 	mergeNode(minidx,pos,c);
 }
 
-void CHist::dump()
+
+//Actually mirroring about the L-infinity mean
+CHist CHist::negate() const
 {
-	std::cout << subs << std::endl;
-	for (uint i = 0; i < subs; i++)
+	DVec minmax = minmax_count();
+	double total = minmax[0] + minmax[1];
+	CHist res = copy();
+
+	for (uint i = 0; i < _size; i ++)
+	{
+		res.nodes[i].count = total - res.nodes[i].count;
+	}
+	return res;
+}
+
+//Get the lowest and highest count of all Interals
+DVec CHist::minmax_count() const
+{
+	DVec minmax = DVec{std::numeric_limits<double>::max(),0};
+	for (auto elem : nodes)
+	{
+		if (minmax[0] >= elem.count)
+			minmax[0] = elem.count;
+		if (minmax[1] <= elem.count)
+			minmax[1] = elem.count;
+	}
+	return minmax;
+}
+
+
+uint CHist::child_loop(uint idx,uint dir) const
+{
+	while (true)
+	{
+		uint child_idx = child(idx,dir);
+		if (child_idx >= _size || nodes[child_idx].count == 0)
+			return idx;
+		idx = child_idx;
+	}
+}
+
+uint CHist::next(uint idx,uint &dir) const
+{
+	while (dir <= _subs)
+	{
+		uint child_idx = child(idx,dir);
+		if (child_idx < _size && nodes[child_idx].count != 0)
+		{
+			dir = 2;
+			return child_loop(child_idx,1);
+		}
+		dir++;
+	}
+
+	uint p = parent(idx);
+	if (p == 0 && child(p,_subs) == idx)
+	{
+		dir = 0;
+		return 0;
+	}
+	while (child(p,_subs) == idx)
+	{
+		idx = p;
+		p = parent(idx);
+		if (p == 0 && child(p,_subs) == idx)
+		{
+			dir = 0;
+			return 0;
+		}
+	}
+
+	dir = 1 + get_dir(p,idx);
+
+	if (dir-1 == _subs/2)
+		return p;
+	else
+		return next(p,dir);
+}
+
+double CHist::get(DVec pos) const
+{
+	return get(vecToArray(pos));
+}
+double CHist::get(double * pos) const
+{
+	uint idx = 0;
+	while (idx < _size || nodes[idx].count == 0)
+	{
+		if (nodes[idx].pos == pos)
+			return nodes[idx].count;
+		uint dir = cmp(nodes[idx].pos,pos);
+		idx = child(idx,dir);
+	}
+	throw RuntimeException(TRACE_INFO,"This Position is not an element of this Histogram.");
+}
+
+double CHist::get_avg(DVec pos) const
+{
+	return get_avg(vecToArray(pos));
+}
+double CHist::get_avg(double * pos) const
+{
+	double mindist = std::numeric_limits<double>::infinity();
+	uint minidx = -1;
+
+	uint idx = 0;
+	while (idx < _size && nodes[idx].count != 0)
+	{
+		if (eq(nodes[idx].pos,pos))
+			return nodes[idx].count;
+
+		double tmp = dist(nodes[idx].pos,pos);
+		if (tmp < mindist)
+		{
+			mindist = tmp;
+			minidx = idx;
+		}
+		uint dir = cmp(nodes[idx].pos,pos);
+		idx = child(idx,dir);
+	}
+
+	Node n1 = nodes[minidx];
+	double dist1 = dist(n1.pos,pos);
+	double s1 = 1/dist1;
+
+	double sum1 = n1.count * s1;
+	double sum2 = s1;
+
+	for (int i = 1; i <= _subs; i++)
+	{
+		uint neighbor_idx = neighbor(minidx,i);
+		if (neighbor_idx == -1)
+			continue;
+
+		Node n2 = nodes[neighbor_idx];
+		double dist2 = dist(n2.pos,pos);
+		double s2 = 1/dist2;
+		sum1 += n2.count * s2;
+		sum2 += s2;
+
+		std::cout << Node::to_string(*this,n2) << "dist: "<< dist2 << std::endl;
+	}
+
+	return sum1 / sum2;
+}
+
+uint CHist::neighbor(uint idx,uint dir) const
+{
+	uint opp = child_opposite(dir);
+	uint c = child(idx,dir);
+	if (c < _size && nodes[c].count != 0)
+	{
+		return child_loop(c,opp);
+	}
+
+	uint p = parent(idx);
+	uint pdir = get_dir(p,idx);
+	if (pdir == opp)
+		return p;
+
+	if (pdir == dir)
+	{
+		while (true)
+		{
+			if (p == 0)
+				return -1;
+			idx = p;
+			p = parent(idx);
+			uint pdir = get_dir(p,idx);
+
+			if (pdir == dir)
+				return child_loop(p,opp);
+		}
+	}
+
+	uint opp_pdir = child_opposite(pdir);
+	c = child(p,dir);
+	return child_loop(c,opp_pdir);
+
+}
+
+void CHist::dump() const
+{
+	std::cout << _subs << std::endl;
+	for (uint i = 0; i < _subs; i++)
 		std::cout << to_string(limits[i]) << "\n";
 	dumpP(0);
 }
 
-void CHist::dumpP(uint idx)
+void CHist::dumpP(uint idx) const
 {
 	uint child_l = child(idx,1);
-	if (child_l < size && nodes[child_l].count != 0)
+	if (child_l < _size && nodes[child_l].count != 0)
 		dumpP(child_l);
 
 	std::cout << to_string(nodes[idx].pos)
 			  << "," << nodes[idx].count << std::endl;
 
 	uint child_r = child(idx,2);
-	if (child_r < size && nodes[child_r].count != 0)
+	if (child_r < _size && nodes[child_r].count != 0)
 		dumpP(child_r);
 }
 
-void CHist::print()
+void CHist::print() const
 {
 	std::cout << "limits: ";
-	for (uint i = 0; i < subs; i++)
+	for (uint i = 0; i < _subs; i++)
 		std::cout << "i: " << (i+1) << "," << to_string(limits[i]) << " ";
 	std::cout << std::endl;
 	print(0,0);
 	std::cout << std::endl;
 }
 
-void CHist::print(uint idx, uint d)
+void CHist::print(uint idx, uint d) const
 {
 	uint i;
 
-	if (size <= idx || nodes[idx].count == 0)
+	if (_size <= idx || nodes[idx].count == 0)
 		return;
 
 	for (i=0; i<d; i++)
@@ -485,61 +704,105 @@ void CHist::print(uint idx, uint d)
 
 	std::cout << "pos: " << to_string(nodes[idx].pos)
 			  << " count: " << nodes[idx].count << std::endl;
-	for (uint i = 1; i <= subs; i ++)
+	for (uint i = 1; i <= _subs; i ++)
 	{
 		print(child(idx,i),d+1);
 	}
 }
 
-
-CHist CHist::merge(CHist h1, CHist h2)
+CHist CHist::copy() const
 {
-	if (h1.size != h2.size)
-		throw RuntimeException(TRACE_INFO,"CHists must be same size");
-	if (h1.subs != h2.subs)
-		throw RuntimeException(TRACE_INFO,"CHists must be same dimensions");
+	CHist res = CHist(_size,_dimensions);
 
-	CHist res = CHist(h1.size,h1.dimensions);
+	auto size = sizeof(double) * _dimensions;
 
-	for (uint i = 0; i < h1.size; i++)
+	for (uint i = 0; i < _size; i++)
 	{
-		auto size = sizeof(double)*res.dimensions;
-
-		Node n1 = h1.nodes[i];
-		double *n1pos = (double*)malloc(size);
-		memcpy(n1pos,n1.pos,size);
-		res.insertP(n1pos,n1.count);
-
-		Node n2 = h2.nodes[i];
-		double *n2pos = (double*)malloc(size);
-		memcpy(n2pos,n2.pos,size);
-		res.insertP(n2pos,n2.count);
+		memcpy(res.nodes[i].pos,nodes[i].pos,size);
+		res.nodes[i].count = nodes[i].count;
 	}
 
-
-	for (uint i = 0; i < res.subs; i++)
-		if ((i+1) == res.cmp(h1.limits[i],h2.limits[i]))
-			res.limits[i] = h2.limits[i];
-		else
-			res.limits[i] = h1.limits[i];
+	for (uint i = 0; i < _subs; i++)
+		memcpy(res.limits[i],limits[i],size);
 
 	return res;
 }
 
-std::string CHist::to_string(double * pos)
+CHist CHist::merge(const CHist &h1, const CHist &h2)
+{
+	if (h1._size != h2._size)
+		throw RuntimeException(TRACE_INFO,"CHists must be same size");
+	if (h1._subs != h2._subs)
+		throw RuntimeException(TRACE_INFO,"CHists must be same dimensions");
+
+	CHist res = CHist(h1._size,h1._dimensions);
+
+	auto size = sizeof(double)*res._dimensions;
+
+	for (uint i = 0; i < h1._size; i++)
+	{
+		Node n1 = h1.nodes[i];
+		double *n1pos = (double*)malloc(size);
+		memcpy(n1pos,n1.pos,size);
+		res.insert(n1pos,n1.count);
+
+		Node n2 = h2.nodes[i];
+		double *n2pos = (double*)malloc(size);
+		memcpy(n2pos,n2.pos,size);
+		res.insert(n2pos,n2.count);
+	}
+
+
+	for (uint i = 0; i < res._subs; i++)
+		if ((i+1) == res.cmp(h1.limits[i],h2.limits[i]))
+		{
+			memcpy(res.limits[i],h2.limits[i],size);
+		}
+		else
+		{
+			memcpy(res.limits[i],h1.limits[i],size);
+		}
+
+	return res;
+}
+
+bool CHist::operator==(const CHist &other) const
+{
+	if (_size != other._size || _subs != other._subs ||
+	    _count_elems != other._count_elems || _total_count != other._total_count)
+		return false;
+
+	for (uint i = 0; i < _subs; i++)
+		if (!eq(limits[i],other.limits[i]))
+			return false;
+
+	for (uint i = 0; i < _size; i++)
+		if (!eq(nodes[i],other.nodes[i]))
+			return false;
+
+	return true;
+}
+
+std::string CHist::to_string(double * pos) const
 {
 	std::stringstream ss;
-	if (dimensions == 1)
+	if (_dimensions == 1)
 	{
 		ss << *pos;
 	}
 	else
 	{
 		ss << "(";
-		for (uint i = 0; i < dimensions; i++)
+		for (uint i = 0; i < _dimensions; i++)
 			ss << *(pos+i) << ",";
 		ss.seekp(-1,std::ios_base::end);
 		ss << ")";
 	}
+	return ss.str();
+}
+std::string Node::to_string(const CHist &h,Node n)
+{
+	std::stringstream ss;
+	ss << "Node pos,count: " << h.to_string(n.pos) << "," << n.count << " ";
 	return ss.str();
 }

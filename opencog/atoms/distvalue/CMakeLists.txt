@@ -3,7 +3,10 @@ ADD_LIBRARY (distvalue
 	#ConditionalDV.cc
 	#DVFormulas.cc
 	#DistributionalValueSCM.cc
-	Histogram.cc
+	#Histogram.cc
+	#Interval.cc
+	CHist.cc
+	CHistIter.cc
 )
 
 # Without this, parallel make will race and crap up the generated files.

@@ -34,6 +34,8 @@
 
 using namespace opencog;
 
+#if 0
+
 //Given a key return the min of all it's Intervals
 DVec DVFormulas::get_key_min(const NdimBin &k)
 {
@@ -56,6 +58,8 @@ DVec DVFormulas::get_key_max(const NdimBin &k)
 	return res;
 }
 
+#endif
+
 //(A,B,C) + (B,C) => (B,C) -> A
 //idx is the position of consequent in the joint Distribution
 //(A,B,C) A is at idx 0
@@ -65,8 +69,8 @@ ConditionalDVPtr DVFormulas::joint_to_cdv(DistributionalValuePtr dv1,
                                           int idx)
 {
 	CDVrep res;
-	size_t dv1dims = dv1->value().begin()->first.size();
-	size_t dv2dims = dv2->value().begin()->first.size();
+	size_t dv1dims = dv1->value().dimensions();
+	size_t dv2dims = dv2->value().dimensiosn();
 	if (dv1dims <= 1)
 		throw RuntimeException(TRACE_INFO,"Can't divide non Joint DV.");
 	if (dv1dims - 1 != dv2dims)
@@ -74,20 +78,32 @@ ConditionalDVPtr DVFormulas::joint_to_cdv(DistributionalValuePtr dv1,
 
 	for (auto elem : dv1->value())
 	{
-		NdimBin hs = elem.first;
+		size = sizeof(double);
+		double * hs = (double*)malloc(size * dv2dims);
 
 		//get the consequent
-		NdimBin h = NdimBin{hs[idx]};
+		double * h = (double*)malloc(size);
+		memcpy(h,elem.pos+idx,size);
 		//remove it from the condition
-		hs.erase(hs.begin() + idx);
+		int j = 0;
+		for (int = 0; i < dv2dims; i++)
+		{
+			if (i != idx)
+			{
+				memcpy(hs+j,elem.pos+i,size);
+				j++;
+			}
+		}
 
 		if (dv2->get_contained_mean(hs) != 0)
-			res[hs][h] = dv1->get_mean(elem.first)
+			res[hs][h] = dv1->get_mean_for(elem.count)
 				/ dv2->get_contained_mean(hs)
 				* dv2->total_count();
 	}
 	return ConditionalDV::createCDV(res);
 }
+
+#if 0
 
 //(A,B,C) => (A,C)
 //idx is the position of the Element to sum out of the joint-dv
@@ -225,3 +241,5 @@ DVFormulas::consequent_disjunction_elemination(ConditionalDVPtr cdv1,
 	}
 	return ConditionalDV::createCDV(res);
 }
+
+#endif

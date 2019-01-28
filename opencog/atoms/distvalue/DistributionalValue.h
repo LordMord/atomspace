@@ -31,7 +31,7 @@
 #include <limits>
 
 #include <opencog/atoms/value/Value.h>
-#include <opencog/atoms/distvalue/Histogram.h>
+#include <opencog/atoms/distvalue/CHist.h>
 
 /** \addtogroup grp_atomspace
  *	@{
@@ -58,30 +58,22 @@ class AtomSpace;
 class DistributionalValue
 	: public Value
 {
-	Histogram<double> _value;
-
-	// Disallow assignment -- truth values are immutable!
-	DistributionalValue& operator=(const DistributionalValue& rhs) {
-		throw RuntimeException(TRACE_INFO, "Cannot modify truth values!");
-	}
-
+	CHist _value;
 
 public:
 	static count_t DEFAULT_K;
 
 	DistributionalValue();
-	DistributionalValue(const Histogram<double>&);
+	DistributionalValue(const CHist&);
 	DistributionalValue(double, double);
 
-	const Histogram<double>& value() const { return _value; }
+	const CHist& value() const { return _value; }
 
-	static DistributionalValuePtr UniformDistributionalValue(const NBin&, int);
-	static DistributionalValuePtr UniformDistributionalValue(const NBinSeq&, int);
 	static DistributionalValuePtr TRUE_TV();
 	static DistributionalValuePtr FALSE_TV();
 	static DistributionalValuePtr DEFAULT_TV();
 	static DistributionalValuePtr createDV(double, double);
-	static DistributionalValuePtr createDV(const Histogram<double>&);
+	static DistributionalValuePtr createDV(const CHist&);
 
 	//Utility functions to convert between confidence and count
 	//Should this be moved elsewhere???
@@ -90,34 +82,24 @@ public:
 
 	bool is_uniform() const;
 
-	//
 	std::vector<double> bin_modes() const;
 	std::vector<double> bin_means() const;
 	std::vector<double> bin_vars() const;
-
-	double get_fstord_mean() const;
 
 	double get_mode_for(double) const;
 	double get_mean_for(double) const;
 	double get_var_for(double) const;
 
-	DistributionalValuePtr add_evidence(const NBin&) const;
+	void add_evidence(const DVec&);
 	DistributionalValuePtr merge(DistributionalValuePtr) const;
-	DistributionalValuePtr negate() const;
-
-	Interval minmax_count() const;
 
 	double total_count() const;
 	double get_confidence() const;
 
-	static double conditional_probabilty(const NBin&, const NBin&);
-
-	double get_count(const NBin&) const;
-	double get_contained_count(const NBin&) const;
-	double get_mean(const NBin&) const;
-	double get_contained_mean(const NBin&) const;
-	double get_mode(const NBin&) const;
-	double get_var(const NBin&) const;
+	double get_mean(const DVec&) const;
+	double get_contained_mean(const DVec&) const;
+	double get_mode(const DVec&) const;
+	double get_var(const DVec&) const;
 
 	virtual bool operator==(const Value& rhs) const;
 
