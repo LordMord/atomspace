@@ -27,6 +27,7 @@
 #include <boost/range/algorithm/find.hpp>
 #include <boost/range/algorithm/sort.hpp>
 #include <boost/range/algorithm_ext/erase.hpp>
+#include <boost/algorithm/cxx11/all_of.hpp>
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
@@ -35,8 +36,9 @@
 
 #include <opencog/util/random.h>
 #include <opencog/util/algorithm.h>
-#include <opencog/atomutils/FindUtils.h>
-#include <opencog/atoms/execution/ExecutionOutputLink.h>
+#include <opencog/atoms/core/FindUtils.h>
+#include <opencog/atoms/core/TypeUtils.h>
+#include <opencog/atoms/execution/LibraryManager.h>
 #include <opencog/atoms/pattern/PatternUtils.h>
 
 #include "BIT.h"
@@ -647,7 +649,7 @@ std::string AndBIT::line_separator(const std::string& up_aa,
 
 	// Get formula string
 	std::string lang, lib, fun;
-	ExecutionOutputLink::lang_lib_fun(gsn->get_name(), lang, lib, fun);
+	LibraryManager::lang_lib_fun(gsn->get_name(), lang, lib, fun);
 	std::string formula_str = fun.substr(0, line_sep_size - 2);
 	size_t formula_str_size = formula_str.size();
 
@@ -743,9 +745,8 @@ void BIT::reset_exhausted_flags()
 
 bool BIT::andbits_exhausted() const
 {
-	return std::all_of(andbits.begin(), andbits.end(),
-	                   [](const AndBIT& andbit) {
-		                   return andbit.exhausted; });
+	return boost::algorithm::all_of(andbits, [](const AndBIT& andbit) {
+			return andbit.exhausted; });
 }
 
 bool BIT::is_in(const RuleTypedSubstitutionPair& rule,

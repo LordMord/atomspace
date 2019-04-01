@@ -148,7 +148,7 @@ void SQLAtomStorage::do_store_single_atom(const Handle& h, int aheight)
 {
 	setup_typemap();
 
-	std::lock_guard<std::mutex> create_lock(_store_mutex);
+	std::unique_lock<std::mutex> create_lock(_store_mutex);
 
 	UUID uuid = check_uuid(h);
 	if (TLB::INVALID_UUID != uuid) return;
@@ -177,7 +177,7 @@ void SQLAtomStorage::do_store_single_atom(const Handle& h, int aheight)
 	}
 
 	// Store the atomspace UUID
-	AtomTable * at = getAtomTable(h);
+	AtomSpace * at = h->getAtomSpace();
 	// We allow storage of atoms that don't belong to an atomspace.
 	if (at) uuidbuff = std::to_string(at->get_uuid());
 	else uuidbuff = "0";
@@ -266,7 +266,7 @@ void SQLAtomStorage::do_store_single_atom(const Handle& h, int aheight)
 	catch (const SilentException& ex)
 	{
 		_tlbuf.removeAtom(uuid);
-		_store_mutex.unlock();
+		create_lock.unlock();
 		do_store_single_atom(h, aheight);
 	}
 
@@ -277,8 +277,8 @@ void SQLAtomStorage::do_store_single_atom(const Handle& h, int aheight)
 	// XXX this is currently dead code ...
 	if (try_again)
 	{
-		AtomTable *at = getAtomTable(h);
-		if (at) store_atomtable_id(*at);
+		AtomSpace *at = h->getAtomSpace();
+		if (at) store_atomtable_id(at->get_uuid());
 
 		Response rp(conn_pool);
 		rp.exec(qry.c_str());

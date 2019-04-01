@@ -10,7 +10,7 @@
  * Atoms are identified by means of unique ID's (UUID's), which are
  * correlated with specific in-RAM atoms via the TLB.
  *
- * Copyright (c) 2008,2009,2013,2017 Linas Vepstas <linas@linas.org>
+ * Copyright (c) 2008,2009,2013,2015,2017 Linas Vepstas <linas@linas.org>
  *
  * LICENSE:
  * This program is free software; you can redistribute it and/or modify
@@ -127,6 +127,9 @@ void SQLAtomStorage::init(const char * uri)
 
 	if (!connected()) return;
 
+	// Need the server version before init'ing the UUID pool.
+	get_server_version();
+
 	_uuid_manager.that = this;
 	_uuid_manager.reset_uuid_pool(getMaxObservedUUID());
 	_vuid_manager.that = this;
@@ -190,6 +193,15 @@ bool SQLAtomStorage::connected(void)
 	return have_connection;
 }
 
+/** get_server_version() -- get version of postgres server */
+void SQLAtomStorage::get_server_version(void)
+{
+	Response rp(conn_pool);
+	rp.exec("SHOW server_version_num;");
+	rp.rs->foreach_row(&Response::intval_cb, &rp);
+	_server_version = rp.intval;
+}
+
 /// Rethrow asynchronous exceptions caught during atom storage.
 ///
 /// Atoms are stored asynchronously, from a write queue, from some
@@ -232,6 +244,11 @@ void SQLAtomStorage::flushStoreQueue()
 	rethrow();
 	_write_queue.barrier();
 	rethrow();
+}
+
+void SQLAtomStorage::barrier()
+{
+	flushStoreQueue();
 }
 
 /* ================================================================ */

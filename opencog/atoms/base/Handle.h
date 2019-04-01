@@ -181,6 +181,9 @@ typedef std::vector<HandleSeq> HandleSeqSeq;
 //! RAM and has faster iteration.
 typedef std::set<Handle> HandleSet;
 
+//! a set of sets of handles.
+typedef std::set<HandleSet> HandleSetSet;
+
 //! a sequence of sets of handles.
 typedef std::vector<HandleSet> HandleSetSeq;
 
@@ -295,6 +298,8 @@ std::string oc_to_string(const HandleSeqSeq& hss,
                          const std::string& indent=empty_string);
 std::string oc_to_string(const HandleSet& ohs,
                          const std::string& indent=empty_string);
+std::string oc_to_string(const HandleSetSet& ohss,
+                         const std::string& indent=empty_string);
 std::string oc_to_string(const HandleSetSeq& ohss,
                          const std::string& indent=empty_string);
 std::string oc_to_string(const UnorderedHandleSet& uhs,
@@ -321,6 +326,30 @@ std::string oc_to_string(const TypeSet& types,
                          const std::string& indent=empty_string);
 std::string oc_to_string(const AtomPtr& aptr,
                          const std::string& indent=empty_string);
+
+/**
+ * Cast Handle to the specific Atom subclass. This function is defined only
+ * for T which are subclasses of Atom.
+ */
+template<typename T>
+static inline
+typename std::enable_if< std::is_base_of<Atom, T>::value, std::shared_ptr<T> >::type
+CastFromHandle(const Handle& handle)
+{
+	return std::dynamic_pointer_cast<T>(handle);
+}
+
+/**
+ * Cast AtomPtr to the specific Atom subclass. This function is defined only
+ * for T which are subclasses of Atom.
+ */
+template<typename T>
+static inline
+typename std::enable_if< std::is_base_of<Atom, T>::value, std::shared_ptr<T> >::type
+CastFromAtomPtr(const AtomPtr& atom)
+{
+	return std::dynamic_pointer_cast<T>(atom);
+}
 
 } // namespace opencog
 
