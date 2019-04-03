@@ -26,6 +26,9 @@
 
 #include <vector>
 #include <string>
+#include <ostream>
+
+#include <boost/operators.hpp>
 
 #include <opencog/atoms/distvalue/CHistIter.h>
 
@@ -35,19 +38,23 @@ namespace opencog
 typedef unsigned int uint;
 typedef std::vector<double> DVec;
 
+template <typename c_typ>
 class CHist;
 
+template <typename c_typ>
 struct Node {
 	double *pos;
-	double count;
+	c_typ count;
 
-	static std::string to_string(const CHist&, Node);
+	static std::string to_string(const CHist<c_typ>&, Node);
 };
 
-class CHist
+template <typename c_typ>
+class CHist : boost::arithmetic2<CHist<c_typ>,double>
+			, boost::addable1<CHist<c_typ>>
 {
-	friend iterator;
-	friend const_iterator;
+	friend iterator<c_typ>;
+	friend const_iterator<c_typ>;
 	//TODO: Size is also stored in the nodes vector
 	//Should we use a vector? If so get ride of _size
 	uint _size;
@@ -56,7 +63,7 @@ class CHist
 	uint _subs;
 	uint _dimensions;
 	std::vector<double*> limits;
-	std::vector<Node> nodes;
+	std::vector<Node<c_typ>> nodes;
 
 	/*
 	 * Return the Direction from one Pos to the Other
@@ -157,19 +164,19 @@ class CHist
 	 * Merge the Position of the Node with the given
 	 * weighted by the counts
 	 */
-	void mergeNode(uint, double*, double);
+	void mergeNode(uint, double*, c_typ);
 
 	/*
 	 * Insert a value into the Tree trying to fill it
 	 * and rebalance if required
 	 */
-	void insertFill(double*,double);
+	void insertFill(double*,c_typ);
 
 	/*
 	 * For when the Tree is alredy full.
 	 * Find the closest Node to the provided value an merge them
 	 */
-	void insertMerge(double*,double);
+	void insertMerge(double*,c_typ);
 
 	/*
 	 * Helpers for the dump/print/insert function
@@ -186,7 +193,7 @@ class CHist
 	double* div(double *, double) const;
 	double* add(double *, double *) const;
 	bool eq(double *, double *) const;
-	bool eq(const Node&, const Node&) const;
+	bool eq(const Node<c_typ>&, const Node<c_typ>&) const;
 
 	/*
 	 * Get Both the minimum and maximum counts
@@ -195,7 +202,7 @@ class CHist
 
 public:
 
-	CHist(uint,uint);
+	CHist(uint s = 0,uint d = 0);
 
 	~CHist();
 
@@ -207,41 +214,47 @@ public:
 	uint child_loop(uint,uint) const;
 	uint next(uint,uint&) const;
 
-	iterator begin() {return iterator(child_loop(0,1),2,*this);}
-	iterator end() {return iterator(0,0,*this);}
+	iterator<c_typ> begin() {return iterator<c_typ>(child_loop(0,1),2,*this);}
+	iterator<c_typ> end() {return iterator<c_typ>(0,0,*this);}
 
-	const_iterator begin() const {return const_iterator(child_loop(0,1),2,*this);}
-	const_iterator end() const {return const_iterator(0,0,*this);}
+	const_iterator<c_typ> begin() const
+	{return const_iterator<c_typ>(child_loop(0,1),2,*this);}
 
-	const_iterator cbegin() const {return const_iterator(child_loop(0,1),2,*this);}
-	const_iterator cend() const {return const_iterator(0,0,*this);}
+	const_iterator<c_typ> end() const
+	{return const_iterator<c_typ>(0,0,*this);}
+
+	const_iterator<c_typ> cbegin() const
+	{return const_iterator<c_typ>(child_loop(0,1),2,*this);}
+
+	const_iterator<c_typ> cend() const
+	{return const_iterator<c_typ>(0,0,*this);}
 
 	/*
 	 * Insert a Value into the Histogram
 	 */
-	void insert(DVec, double);
-	void insert(double*,double);
+	void insert(DVec, c_typ);
+	void insert(double*,c_typ);
 
 	/*
 	 * Provide a Position and get the Count at that Position
 	 * throws Exception if Position is not in the Tree
 	 */
-	double get(DVec) const;
-	double get(double*) const;
+	c_typ get(DVec) const;
+	c_typ get(double*) const;
 
 	/*
 	 * Provide a Position and get the Count at that Position
 	 * If the position is not in the Tree take the average of the
 	 * closest point and one on the other side
 	 */
-	double get_avg(DVec) const;
-	double get_avg(double*) const;
+	c_typ get_avg(DVec) const;
+	c_typ get_avg(double*) const;
 
 	/*
 	 * Mirror the Histogram about the L-infinity mean
 	 * TODO: Should this be called negate.
 	 */
-	CHist negate() const;
+	//CHist negate() const;
 
 	/*
 	 * Merge 2 Histograms into 1
@@ -268,9 +281,32 @@ public:
 	 */
 	std::string to_string(double*) const;
 
-	bool operator==(const CHist&) const;
-	bool operator!=(const CHist& other) const {return !(*this == other);};
+	bool operator==(const CHist<c_typ>&) const;
+	bool operator!=(const CHist<c_typ>& other) const {return !(*this == other);};
+
+	CHist<c_typ>& operator+=(const CHist<c_typ>&);
+
+	CHist<c_typ>& operator+=(const double&);
+	CHist<c_typ>& operator-=(const double&);
+	CHist<c_typ>& operator*=(const double&);
+	CHist<c_typ>& operator/=(const double&);
 };
+
+template <typename c_typ>
+std::ostream& operator<<(std::ostream&, const CHist<c_typ>&);
+
+template class CHist<double>;
+template class CHist<CHist<double>>;
+
+double get_count(const double& val);
+double get_count(const CHist<double>& val);
+double get_count(const Node<double>& val);
+double get_count(const Node<CHist<double>>& val);
+
+void update_count(double& val, double c);
+void update_count(CHist<double>& val, double c);
+void update_count(Node<double>& val, double c);
+void update_count(Node<CHist<double>>& val, double c);
 
 }
 

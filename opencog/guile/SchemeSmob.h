@@ -78,7 +78,7 @@ private:
 	static TruthValuePtr scm_to_tv(SCM);
 
 	static std::vector<double> scm_to_float_list (SCM);
-	static ProtomSeq scm_to_protom_list (SCM);
+	static ValueSeq scm_to_protom_list (SCM);
 	static std::vector<std::string> scm_to_string_list (SCM);
 
 	// Value, atom creation and deletion functions
@@ -212,7 +212,7 @@ private:
 	                                     int pos = 1);
 	static std::vector<double> verify_float_list (SCM, const char *,
 	                                              int pos = 1);
-	static ProtomSeq verify_protom_list (SCM, const char *,
+	static ValueSeq verify_protom_list (SCM, const char *,
 	                                     int pos = 1);
 	static std::vector<std::string> verify_string_list (SCM, const char *,
 	                                                    int pos = 1);

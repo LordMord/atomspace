@@ -28,42 +28,50 @@
 namespace opencog
 {
 
+template <typename c_typ>
 class CHist;
+
+template <typename c_typ>
 struct Node;
 
-template <typename pointer,typename ref>
+template <typename c_typ,typename pointer,typename ref>
 class iterator_template :
 	public std::iterator<std::forward_iterator_tag, // iterator_category
-						 Node ,                     // value_type
+						 Node<c_typ> ,                     // value_type
 						 std::ptrdiff_t,            // difference_type
 						 pointer,                   // pointer
-						 Node&>                     // reference
+						 Node<c_typ>&>                     // reference
 
 {
 	uint idx;
 	uint dir;
 	ref & hist;
 public:
-	iterator_template<pointer,ref>(uint i, uint d, ref & h);
+	iterator_template<c_typ,pointer,ref>(uint i, uint d, ref & h);
 
-	iterator_template<pointer,ref>& operator++();
+	iterator_template<c_typ,pointer,ref>& operator++();
 
-	iterator_template<pointer,ref>& operator++(int);
+	iterator_template<c_typ,pointer,ref> operator++(int);
 
-	bool operator==(iterator_template<pointer,ref> other) const;
+	bool operator==(iterator_template<c_typ,pointer,ref> other) const;
 
-	bool operator!=(iterator_template<pointer,ref> other) const;
+	bool operator!=(iterator_template<c_typ,pointer,ref> other) const;
 
-	const Node& operator*();
+	const Node<c_typ>& operator*();
 
 	pointer operator->();
 };
 
-typedef iterator_template<Node *, CHist> iterator;
-typedef iterator_template<const Node *, const CHist> const_iterator;
+template<typename c_typ>
+using iterator = iterator_template<c_typ, Node<c_typ> *, CHist<c_typ>>;
 
-template class iterator_template<Node *, CHist>;
-template class iterator_template<const Node *, const CHist>;
+template<typename c_typ>
+using const_iterator = iterator_template<c_typ, const Node<c_typ> *
+											  , const CHist<c_typ>>;
+
+template class iterator_template<double,Node<double> *, CHist<double>>;
+
+template class iterator_template<double,const Node<double> *, const CHist<double>>;
 
 } // namespace opencog
 

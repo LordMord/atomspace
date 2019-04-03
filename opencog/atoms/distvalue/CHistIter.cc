@@ -26,45 +26,47 @@
 
 using namespace opencog;
 
-template <typename pointer, typename ref>
-iterator_template<pointer,ref>::iterator_template(uint i, uint d, ref & h)
+template <typename c_typ, typename pointer, typename ref>
+iterator_template<c_typ,pointer,ref>::iterator_template(uint i, uint d, ref & h)
 		: idx(i) , dir(d) , hist(h) {}
 
-template <typename pointer, typename ref>
-iterator_template<pointer,ref>& iterator_template<pointer,ref>::operator++()
+template <typename c_typ, typename pointer, typename ref>
+iterator_template<c_typ,pointer,ref>&
+iterator_template<c_typ,pointer,ref>::operator++()
 {
 	idx = hist.next(idx,dir);
 	return *this;
 }
 
-template <typename pointer, typename ref>
-iterator_template<pointer,ref>& iterator_template<pointer,ref>::operator++(int)
+template <typename c_typ, typename pointer, typename ref>
+iterator_template<c_typ,pointer,ref>
+iterator_template<c_typ,pointer,ref>::operator++(int)
 {
 	auto result(*this);
 	++(*this);
 	return result;
 }
 
-template <typename pointer, typename ref>
-bool iterator_template<pointer,ref>::operator==(iterator_template<pointer,ref> other) const
+template <typename c_typ, typename pointer, typename ref>
+bool iterator_template<c_typ,pointer,ref>::operator==(iterator_template<c_typ,pointer,ref> other) const
 {
 	return (idx == other.idx && dir == other.dir && hist == other.hist);
 }
 
-template <typename pointer, typename ref>
-bool iterator_template<pointer,ref>::operator!=(iterator_template<pointer,ref> other) const
+template <typename c_typ, typename pointer, typename ref>
+bool iterator_template<c_typ,pointer,ref>::operator!=(iterator_template<c_typ,pointer,ref> other) const
 {
 	return (idx != other.idx || dir != other.dir || hist != other.hist);
 }
 
-template <typename pointer, typename ref>
-const Node& iterator_template<pointer, ref>::operator*()
+template <typename c_typ, typename pointer, typename ref>
+const Node<c_typ>& iterator_template<c_typ,pointer, ref>::operator*()
 {
 	return hist.nodes[idx];
 }
 
-template <typename pointer, typename ref>
-pointer iterator_template<pointer, ref>::operator->()
+template <typename c_typ, typename pointer, typename ref>
+pointer iterator_template<c_typ,pointer, ref>::operator->()
 {
 	return &(hist.nodes[idx]);
 }

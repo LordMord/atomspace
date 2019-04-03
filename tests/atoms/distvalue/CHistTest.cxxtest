@@ -81,7 +81,7 @@ public:
 		//}
 
 		//CHist hist = CHist::merge(hist1,hist2);
-		CHist hist = CHist(7,1);
+		CHist<double> hist = CHist<double>(7,1);
 		std::cout << "START\n";
 		hist.insert(DVec{1.0},1.0);
 		hist.print();
@@ -108,28 +108,28 @@ public:
 			idx = hist.next(idx,dir);
 		}
 
-		CHist hist2D = CHist(5,2);
-		std::cout << "START\n";
-		hist2D.insert(DVec{2.0,2.0},2.0);
-		hist2D.print();
-		hist2D.insert(DVec{1.0,1.9},1.0);
-		hist2D.print();
-		hist2D.insert(DVec{1.0,2.1},6.0);
-		hist2D.print();
-		hist2D.insert(DVec{3.0,1.0},1.0);
-		hist2D.print();
-		hist2D.insert(DVec{3.0,3.0},3.0);
+		//CHist hist2D = CHist(5,2);
+		//std::cout << "START\n";
+		//hist2D.insert(DVec{2.0,2.0},2.0);
+		//hist2D.print();
+		//hist2D.insert(DVec{1.0,1.9},1.0);
+		//hist2D.print();
+		//hist2D.insert(DVec{1.0,2.1},6.0);
+		//hist2D.print();
+		//hist2D.insert(DVec{3.0,1.0},1.0);
+		//hist2D.print();
+		//hist2D.insert(DVec{3.0,3.0},3.0);
 
-		hist2D.print();
-		hist2D.dump();
+		//hist2D.print();
+		//hist2D.dump();
 
-		std::cout << "START ITERATOR\n";
-		for (Node n : hist2D)
-		{
-			std::cout << Node::to_string(hist2D,n) << std::endl;
-		}
+		//std::cout << "START ITERATOR\n";
+		//for (Node n : hist2D)
+		//{
+		//	std::cout << Node::to_string(hist2D,n) << std::endl;
+		//}
 
-		std::cout << "AVG: " << hist2D.get_avg(DVec{1,2}) << std::endl;
+		//std::cout << "AVG: " << hist2D.get_avg(DVec{1,2}) << std::endl;
 
 		//auto compElem = [](const elem& a,const elem& b)
 		//					{

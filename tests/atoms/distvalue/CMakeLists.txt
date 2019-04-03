@@ -3,7 +3,7 @@ LINK_LIBRARIES(
 	atomspace
 	value
 	distvalue
-	atomutils
+	atomcore
 )
 
 ADD_CXXTEST(CHistTest)
