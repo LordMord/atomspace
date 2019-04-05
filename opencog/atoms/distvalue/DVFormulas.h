@@ -57,7 +57,7 @@ public:
 	//using the formulae P(Y|X) = P(X,Y) / P(X)
 	static ConditionalDVPtr joint_to_cdv(DistributionalValuePtr,
 	                                     DistributionalValuePtr,
-	                                     int);
+	                                     uint);
 
 #if 0
 	//Given P(X,Y) calculate P(X) for an idx of 0

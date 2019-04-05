@@ -43,7 +43,7 @@ ConditionalDV::ConditionalDV(const CDVrep &rep)
 	_value = rep;
 }
 
-ConditionalDV::ConditionalDV(const NdimBinSeq &conds,
+ConditionalDV::ConditionalDV(const DVecSeq &conds,
                              const std::vector<DistributionalValuePtr> &dvs)
 	: Value(CONDITIONAL_DISTRIBUTIONAL_VALUE)
 {
@@ -60,9 +60,11 @@ ConditionalDV::ConditionalDV(const NdimBinSeq &conds,
 	if (dvs.size() != conds.size())
 		throw RuntimeException(TRACE_INFO,"DVs and Conds must be the same lenght.");
 
+	_value = CHist<CHist<double>>(conds.size(),conds[0].size());
+
 	for (;(it1 != end1) && (it2 != end2); ++it1, ++it2)
 	{
-		_value[*it1] = (*it2)->_value;
+		_value.insert(*it1,(*it2)->_value);
 	}
 }
 
@@ -76,55 +78,32 @@ ConditionalDVPtr ConditionalDV::createCDV(const CDVrep &rep)
 	return std::make_shared<const ConditionalDV>(rep);
 }
 
-ConditionalDVPtr ConditionalDV::createCDV(const NdimBinSeq &conds,
+ConditionalDVPtr ConditionalDV::createCDV(const DVecSeq &conds,
                                           const std::vector<DistributionalValuePtr> &dvs)
 {
 	return std::make_shared<const ConditionalDV>(conds,dvs);
 }
 
 //Get all the Conditions
-NdimBinSeq ConditionalDV::get_conditions() const
+DVecSeq ConditionalDV::get_conditions() const
 {
-	NdimBinSeq res;
-	for (auto gdtvpart : _value)
-	{
-		res.push_back(gdtvpart.first);
-	}
-	return res;
+	return _value.get_posvvec();
 }
 
 //Get all the DVs without the Conditions
 std::vector<DistributionalValuePtr> ConditionalDV::get_unconditionals() const
 {
 	std::vector<DistributionalValuePtr> res;
-	for (auto gdtvpart : _value)
+	for (auto node : _value)
 	{
-		res.push_back(DistributionalValue::createDV(gdtvpart.second));
+		res.push_back(DistributionalValue::createDV(node.value));
 	}
 	return res;
 }
 
-/*
- * Merge unconditional weighted based on the overlap of the given Interval
- * to the condition interval
- */
-Histogram<double> ConditionalDV::get_unconditionalP(const NdimBin &h) const
+DistributionalValuePtr ConditionalDV::get_unconditional(const DVec &k) const
 {
-	Histogram<double> res;
-	for (auto elem : _value)
-	{
-		double weight = DistributionalValue::conditional_probabilty(h,elem.first);
-		double count = elem.second.total_count();
-		//DV Elems with count of 0 are not allowed
-		if (count != 0 && weight != 0)
-			res += elem.second * weight;
-	}
-	return res;
-}
-
-DistributionalValuePtr ConditionalDV::get_unconditional(const NdimBin &k) const
-{
-	Histogram<double> res = get_unconditionalP(k);
+	CHist<double> res = _value.get_avg(k);
 	return DistributionalValue::createDV(res);
 }
 
@@ -134,25 +113,18 @@ DistributionalValuePtr ConditionalDV::get_unconditional(const NdimBin &k) const
  */
 DistributionalValuePtr ConditionalDV::get_unconditional(DistributionalValuePtr condDist) const
 {
-	Histogram<double> res;
+	CHist<double> res;
 	for (auto v : condDist->_value)
 	{
-		double val = condDist->get_mean_for(v.second);
-		Histogram<double> tmp = get_unconditionalP(v.first) * val;
-		res += tmp;
+		double val = condDist->get_mean_for(v.value);
+		res += _value.get_avg(v.pos) * val;
 	}
-	res = res;
 	return std::make_shared<const DistributionalValue>(res);
 }
 
 double ConditionalDV::total_count() const
 {
-	double res = 0;
-	for (auto elem : _value)
-	{
-		res += elem.second.total_count();
-	}
-	return res;
+	return _value.total_count();
 }
 
 double ConditionalDV::avg_count() const
@@ -162,7 +134,7 @@ double ConditionalDV::avg_count() const
 	for (auto elem : _value)
 	{
 		count++;
-		res += elem.second.total_count();
+		res += elem.value.total_count();
 	}
 	return res / count;
 }
@@ -171,18 +143,20 @@ double ConditionalDV::avg_count() const
 //Given a Distribution of the Condition calculate a Joint Probability distribution
 DistributionalValuePtr ConditionalDV::get_joint_probability(DistributionalValuePtr base) const
 {
-	Histogram<double> res;
-	NBinSeq ivsBASE = base->get_bins();
+	double nsize = base->_value.size() * _value.begin()->value.size();
+	double dims = base->_value.dimensions() + _value.begin()->value.dimensions();
+	CHist<double> res = CHist<double>(nsize,dims);
+	DVecSeq ivsBASE = base->_value.get_posvvec();
 	for (auto k1 : ivsBASE) {
 		DistributionalValuePtr uncond = get_unconditional(k1);
-		NBinSeq ivsTHIS = uncond->get_bins();
+		DVecSeq ivsTHIS = uncond->_value.get_posvvec();
 		for (auto k2 : ivsTHIS) {
-			NdimBin k;
+			DVec k;
 			k.insert(k.end(),k1.begin(),k1.end());
 			k.insert(k.end(),k2.begin(),k2.end());
 
 			//Res count based on base count
-			res[k] = base->_value.at(k1) * uncond->get_mean(k2);
+			res.insert(k,base->_value.get(k1) * uncond->get_mean(k2));
 		}
 	}
 	return DistributionalValue::createDV(res);
@@ -196,12 +170,11 @@ ConditionalDVPtr ConditionalDV::merge(ConditionalDVPtr cdv2) const
 	{
 		for (auto elem2 : cdv2->_value)
 		{
-			DistributionalValuePtr dv1 = DistributionalValue::createDV(elem1.second);
-			DistributionalValuePtr dv2 = DistributionalValue::createDV(elem2.second);
-			NdimBin k;
-			k.insert(k.end(),elem1.first.begin(),elem1.first.end());
-			k.insert(k.end(),elem2.first.begin(),elem2.first.end());
-			res[k] = dv1->merge(dv2)->_value;
+			DVec k;
+			k.insert(k.end(),elem1.pos,elem1.pos + _value.dimensions());
+			k.insert(k.end(),elem2.pos,elem2.pos + cdv2->_value.dimensions());
+			CHist<double> tmp = CHist<double>::merge(elem1.value,elem2.value);
+			res.insert(k,tmp);
 		}
 	}
 	return createCDV(res);
@@ -216,21 +189,14 @@ std::string ConditionalDV::to_string(const std::string& indent) const
 	for (auto elem : _value)
 	{
 		ss << indent << "{";
-		for (auto interval : elem.first)
+		for (uint i = 0; i < _value.dimensions(); i ++)
 		{
-			if (interval.size() == 1)
-				ss << interval[0] << ";";
-			else
-				ss << "["
-				   << interval[0]
-				   << ","
-				   << interval[1]
-				   << ");";
+				ss << *(elem.pos + i) << ";";
 		}
 		ss.seekp(-1,std::ios_base::end);
 		ss << "} DV: "
 		   << std::endl
-		   << DistributionalValue(elem.second).to_string(indent + "    ")
+		   << DistributionalValue(elem.value).to_string(indent + "    ")
 		   << std::endl;
 	}
 	return ss.str();
@@ -241,16 +207,7 @@ bool ConditionalDV::operator==(const Value& other) const
 	if (CONDITIONAL_DISTRIBUTIONAL_VALUE != other.get_type()) return false;
 	const ConditionalDV* cov = (const ConditionalDV*) &other;
 
-	if (_value.size() != cov->_value.size()) return false;
-
-	for (auto elem : _value) {
-		DistributionalValuePtr dv1 = DistributionalValue::createDV(elem.second);
-		auto it = cov->_value.find(elem.first);
-		if (it == _value.end())
-			return false;
-		DistributionalValuePtr dv2 = DistributionalValue::createDV(it->second);
-		if (*dv1 != *dv2)
-			return false;
-	}
+	if (_value != cov->_value)
+		return false;
 	return true;
 }

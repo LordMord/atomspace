@@ -42,7 +42,7 @@ DistributionalValue::DistributionalValue()
 {
 }
 
-DistributionalValue::DistributionalValue(const CHist &hist)
+DistributionalValue::DistributionalValue(const CHist<double> &hist)
 	: Value(DISTRIBUTIONAL_VALUE) , _value(hist)
 {
 }
@@ -61,7 +61,7 @@ DistributionalValue::DistributionalValue(double mode,double conf)
 	_value.insert(DVec{mode},count);
 }
 
-DistributionalValuePtr DistributionalValue::createDV(const CHist &hist)
+DistributionalValuePtr DistributionalValue::createDV(const CHist<double> &hist)
 {
 	return std::make_shared<const DistributionalValue>(hist);
 }
@@ -77,7 +77,7 @@ DistributionalValuePtr DistributionalValue::TRUE_TV()
 	static DistributionalValuePtr instance;
 	if (instance == nullptr)
 	{
-		CHist hist = CHist(1,1);
+		CHist<double> hist = CHist<double>(1,1);
 		hist.insert(DVec{1.0},1.0);
 		instance = std::make_shared<const DistributionalValue>(hist);
 	}
@@ -88,7 +88,7 @@ DistributionalValuePtr DistributionalValue::FALSE_TV()
 	static DistributionalValuePtr instance;
 	if (instance == nullptr)
 	{
-		CHist hist = CHist(1,1);
+		CHist<double> hist = CHist<double>(1,1);
 		hist.insert(DVec{0.0},1.0);
 		instance = std::make_shared<const DistributionalValue>(hist);
 	}
@@ -100,7 +100,7 @@ DistributionalValuePtr DistributionalValue::DEFAULT_TV()
 	if (instance == nullptr)
 	{
 		//TODO: Should this have a size of 15?
-		CHist hist = CHist(0,1);
+		CHist<double> hist = CHist<double>(0,1);
 		instance = std::make_shared<const DistributionalValue>(hist);
 	}
     return instance;
@@ -117,7 +117,7 @@ void DistributionalValue::add_evidence(const DVec& pos)
 //and returns this new one ass a result
 DistributionalValuePtr DistributionalValue::merge(DistributionalValuePtr other) const
 {
-	CHist hist = CHist::merge(_value,other->_value);
+	CHist<double> hist = CHist<double>::merge(_value,other->_value);
 	return createDV(hist);
 }
 
@@ -126,7 +126,7 @@ std::vector<double> DistributionalValue::bin_modes() const
 	std::vector<double> probs;
 	for (auto elem : _value)
 	{
-		probs.push_back(get_mode_for(elem.count));
+		probs.push_back(get_mode_for(elem.value));
 	}
 	return probs;
 }
@@ -136,7 +136,7 @@ std::vector<double> DistributionalValue::bin_means() const
 	std::vector<double> probs;
 	for (auto elem : _value)
 	{
-		probs.push_back(get_mean_for(elem.count));
+		probs.push_back(get_mean_for(elem.value));
 	}
 	return probs;
 }
@@ -147,7 +147,7 @@ std::vector<double> DistributionalValue::bin_vars() const
 	std::vector<double> probs;
 	for (auto elem : _value)
 	{
-		probs.push_back(get_var_for(elem.count));
+		probs.push_back(get_var_for(elem.value));
 	}
 	return probs;
 }
@@ -217,9 +217,9 @@ std::string DistributionalValue::to_string(const std::string& indent) const
 		ss << "Empty DistributionalValue" << std::endl;
 	for (auto elem : _value)
 	{
-		ss << Node::to_string(_value,elem)
+		ss << Node<double>::to_string(_value,elem)
 		   << " Mean: "
-		   << get_mean_for(elem.count)
+		   << get_mean_for(elem.value)
 		   << std::endl;
 	}
 	return ss.str();

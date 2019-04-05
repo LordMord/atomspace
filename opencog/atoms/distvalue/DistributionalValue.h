@@ -49,6 +49,7 @@ class DistributionalValue;
 typedef std::shared_ptr<const DistributionalValue> DistributionalValuePtr;
 
 class AtomSpace;
+class ConditionalDV;
 
 /**
  * This class is used for unconditional distributions which are stored as
@@ -58,22 +59,23 @@ class AtomSpace;
 class DistributionalValue
 	: public Value
 {
-	CHist _value;
+	CHist<double> _value;
+	friend ConditionalDV;
 
 public:
 	static count_t DEFAULT_K;
 
 	DistributionalValue();
-	DistributionalValue(const CHist&);
+	DistributionalValue(const CHist<double>&);
 	DistributionalValue(double, double);
 
-	const CHist& value() const { return _value; }
+	const CHist<double>& value() const { return _value; }
 
 	static DistributionalValuePtr TRUE_TV();
 	static DistributionalValuePtr FALSE_TV();
 	static DistributionalValuePtr DEFAULT_TV();
 	static DistributionalValuePtr createDV(double, double);
-	static DistributionalValuePtr createDV(const CHist&);
+	static DistributionalValuePtr createDV(const CHist<double>&);
 
 	//Utility functions to convert between confidence and count
 	//Should this be moved elsewhere???

@@ -73,6 +73,14 @@ template class iterator_template<double,Node<double> *, CHist<double>>;
 
 template class iterator_template<double,const Node<double> *, const CHist<double>>;
 
+template class iterator_template<CHist<double>
+								 , Node<CHist<double>> *
+								 , CHist<CHist<double>>>;
+
+template class iterator_template<CHist<double>,
+								 const Node<CHist<double>> *,
+								 const CHist<CHist<double>>>;
+
 } // namespace opencog
 
 #endif // _OPENCOG_CHISTITER_H

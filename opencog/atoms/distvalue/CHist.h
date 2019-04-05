@@ -37,6 +37,7 @@ namespace opencog
 
 typedef unsigned int uint;
 typedef std::vector<double> DVec;
+typedef std::vector<DVec> DVecSeq;
 
 template <typename c_typ>
 class CHist;
@@ -44,7 +45,7 @@ class CHist;
 template <typename c_typ>
 struct Node {
 	double *pos;
-	c_typ count;
+	c_typ value;
 
 	static std::string to_string(const CHist<c_typ>&, Node);
 };
@@ -164,27 +165,25 @@ class CHist : boost::arithmetic2<CHist<c_typ>,double>
 	 * Merge the Position of the Node with the given
 	 * weighted by the counts
 	 */
-	void mergeNode(uint, double*, c_typ);
+	void mergeNode(uint, double*,const c_typ&);
 
 	/*
 	 * Insert a value into the Tree trying to fill it
 	 * and rebalance if required
 	 */
-	void insertFill(double*,c_typ);
+	void insertFill(double*,const c_typ&);
 
 	/*
 	 * For when the Tree is alredy full.
 	 * Find the closest Node to the provided value an merge them
 	 */
-	void insertMerge(double*,c_typ);
+	void insertMerge(double*,const c_typ&);
 
 	/*
 	 * Helpers for the dump/print/insert function
 	 */
 	void dumpP(uint idx) const;
-	void print(uint, uint) const;
-
-	double* vecToArray(DVec) const;
+	std::string to_string(uint, uint) const;
 
 	/*
 	 * Helpers for calculation with Positions
@@ -203,6 +202,8 @@ class CHist : boost::arithmetic2<CHist<c_typ>,double>
 public:
 
 	CHist(uint s = 0,uint d = 0);
+
+	CHist(const CHist &);
 
 	~CHist();
 
@@ -229,11 +230,20 @@ public:
 	const_iterator<c_typ> cend() const
 	{return const_iterator<c_typ>(0,0,*this);}
 
+	double* vecToArray(const DVec&) const;
+	DVec arrayToVec(const double *) const;
+
 	/*
 	 * Insert a Value into the Histogram
 	 */
-	void insert(DVec, c_typ);
-	void insert(double*,c_typ);
+	void insert(DVec, const c_typ&);
+	void insert(double*,const c_typ&);
+
+	/*
+	 * Get all positions.
+	 */
+	DVecSeq get_posvvec() const;
+	std::vector<double*> get_posavec() const;
 
 	/*
 	 * Provide a Position and get the Count at that Position
@@ -277,6 +287,11 @@ public:
 	void print() const;
 
 	/*
+	 * Convert the Histogram to a Tree
+	 */
+	std::string to_string() const;
+
+	/*
 	 * Convert a Position to a String for printing
 	 */
 	std::string to_string(double*) const;
@@ -290,10 +305,15 @@ public:
 	CHist<c_typ>& operator-=(const double&);
 	CHist<c_typ>& operator*=(const double&);
 	CHist<c_typ>& operator/=(const double&);
-};
 
-template <typename c_typ>
-std::ostream& operator<<(std::ostream&, const CHist<c_typ>&);
+	CHist<c_typ>& operator=(const CHist<c_typ>& other);
+
+	friend std::ostream& operator<<(std::ostream& os, const CHist<c_typ>& chist)
+	{
+		os << chist.to_string() << std::endl;
+		return os;
+	}
+};
 
 template class CHist<double>;
 template class CHist<CHist<double>>;
@@ -307,6 +327,11 @@ void update_count(double& val, double c);
 void update_count(CHist<double>& val, double c);
 void update_count(Node<double>& val, double c);
 void update_count(Node<CHist<double>>& val, double c);
+
+void merge_count(double& val, double c);
+void merge_count(CHist<double>& val, CHist<double>c);
+void merge_count(Node<double>& val, double c);
+void merge_count(Node<CHist<double>>& val, Node<CHist<double>>c);
 
 }
 

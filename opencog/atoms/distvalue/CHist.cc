@@ -29,6 +29,8 @@
 #include <limits>
 #include <algorithm>
 
+#include <boost/algorithm/string.hpp>
+
 using namespace opencog;
 
 template <typename c_typ>
@@ -69,7 +71,7 @@ bool CHist<c_typ>::eq(double * ds1, double * ds2) const
 template <typename c_typ>
 bool CHist<c_typ>::eq(const Node<c_typ> &n1,const Node<c_typ> &n2) const
 {
-	return (eq(n1.pos,n2.pos) && n1.count == n2.count);
+	return (eq(n1.pos,n2.pos) && n1.value == n2.value);
 }
 
 template <typename c_typ>
@@ -79,7 +81,7 @@ CHist<c_typ>::CHist(uint s,uint d)
 {
 	if (d >= 32)
 		throw RuntimeException(TRACE_INFO,"More then 31 Dimensions not supported.");
-	nodes.resize(s,Node<c_typ>());
+	nodes.resize(s);
 	limits.resize(_subs);
 
 	auto size = sizeof(double)*_dimensions;
@@ -91,6 +93,39 @@ CHist<c_typ>::CHist(uint s,uint d)
 	}
 }
 
+
+template <typename c_typ>
+CHist<c_typ>::CHist(const CHist<c_typ> & other)
+	: _size(other._size) , _count_elems(other._count_elems)
+	, _total_count(other._total_count) , _subs(other._subs)
+	, _dimensions(other._dimensions)
+{
+	auto size = sizeof(double)*_dimensions;
+
+	nodes.resize(_size);
+	for (uint i = 0; i < _size; i++)
+	{
+		if (other.nodes[i].pos == nullptr)
+			continue;
+
+		nodes[i].pos = (double*)malloc(size);
+		if(nodes[i].pos == nullptr)
+			throw RuntimeException(TRACE_INFO,"Malloc Failed");
+		memcpy(nodes[i].pos,other.nodes[i].pos,size);
+
+		nodes[i].value = other.nodes[i].value;
+	}
+
+	limits.resize(_subs);
+	for (uint i = 0; i < _subs; i++)
+	{
+		limits[i] = (double*)malloc(size);
+		if(limits[i] == nullptr)
+			throw RuntimeException(TRACE_INFO,"Malloc Failed");
+		memcpy(limits[i],other.limits[i],size);
+	}
+}
+
 template <typename c_typ>
 CHist<c_typ>::~CHist()
 {
@@ -98,6 +133,57 @@ CHist<c_typ>::~CHist()
 		delete[] elem.pos;
 	for (auto elem : limits)
 		delete[] elem;
+}
+
+template <typename c_typ>
+CHist<c_typ>& CHist<c_typ>::operator=(const CHist<c_typ>& other)
+{
+	if (this == &other)
+		return *this;
+
+	for (Node<c_typ> elem : nodes)
+		delete[] elem.pos;
+	for (auto elem : limits)
+		delete[] elem;
+
+
+	for (uint i = 0; i < _size ; i++)
+		nodes[i].pos = nullptr;
+	for (uint i = 0; i < _subs ; i++)
+		limits[i] = nullptr;
+
+	_size = other._size;
+	_count_elems = other._count_elems;
+	_total_count = other._total_count;
+	_subs = other._subs;
+	_dimensions = other._dimensions;
+
+	auto size = sizeof(double)*_dimensions;
+
+	nodes.resize(_size);
+	for (uint i = 0; i < _size; i++)
+	{
+		if (other.nodes[i].pos == nullptr)
+			continue;
+
+		nodes[i].pos = (double*)malloc(size);
+		if(nodes[i].pos == nullptr)
+			throw RuntimeException(TRACE_INFO,"Malloc Failed");
+		memcpy(nodes[i].pos,other.nodes[i].pos,size);
+
+		nodes[i].value = other.nodes[i].value;
+	}
+
+	limits.resize(_subs);
+	for (uint i = 0; i < _subs; i++)
+	{
+		limits[i] = (double*)malloc(size);
+		if(limits[i] == nullptr)
+			throw RuntimeException(TRACE_INFO,"Malloc Failed");
+		memcpy(limits[i],other.limits[i],size);
+	}
+
+	return *this;
 }
 
 template <typename c_typ>
@@ -145,7 +231,7 @@ uint CHist<c_typ>::child(uint idx,uint child) const
 template <typename c_typ>
 uint CHist<c_typ>::height(uint idx) const
 {
-	if (idx >= _size || nodes[idx].count == 0)
+	if (idx >= _size || nodes[idx].pos == nullptr)
 		return 0;
 	uint max = 0;
 	for (uint i = 1; i <= _subs; i ++)
@@ -169,7 +255,6 @@ void CHist<c_typ>::move_to(uint idx,uint towards)
 
 	nodes[towards] = nodes[idx];
 	nodes[idx].pos = nullptr;
-	nodes[idx].count = 0;
 	for (uint i = 1; i <= _subs; i ++)
 	{
 		move_to(child(idx,i),child(towards,i));
@@ -198,7 +283,6 @@ void CHist<c_typ>::shift_down(uint idx,uint dir)
 	}
 	nodes[towards] = nodes[idx];
 	nodes[idx].pos = nullptr;
-	nodes[idx].count = 0;
 }
 
 template <typename c_typ>
@@ -232,13 +316,11 @@ void CHist<c_typ>::rotate_up(uint idx)
 	move_to(child(idx,child_opp),child(child(p,child_opp),child_idx));
 	//Set it to 0 in original location
 	nodes[child(idx,child_opp)].pos = nullptr;
-	nodes[child(idx,child_opp)].count = 0;
 
 	//Move idx Upwards
 	nodes[p] = nodes[idx];
 	//Incase there is nothing to shift up into this position
 	nodes[idx].pos = nullptr;
-	nodes[idx].count = 0;
 
 	//Move Idx's children Upwards except child_opp
 	for (uint i = 1; i <= _subs; i ++)
@@ -354,20 +436,20 @@ void CHist<c_typ>::make_space(uint idx, uint dir)
 }
 
 template <typename c_typ>
-void CHist<c_typ>::mergeNode(uint idx, double * pos, c_typ c)
+void CHist<c_typ>::mergeNode(uint idx, double * pos,const c_typ & c)
 {
 	Node<c_typ> &n = nodes[idx];
 	double nc = get_count(n);
 	double ac = get_count(c);
 	n.pos = div(add(mul(n.pos,nc),mul(pos,ac)),(nc + ac));
-	update_count(n,nc+ac);
+	merge_count(n.value,c);
 
 	delete[] pos;
 }
 
 
 template <typename c_typ>
-double * CHist<c_typ>::vecToArray(DVec vec) const
+double * CHist<c_typ>::vecToArray(const DVec& vec) const
 {
 	if (vec.size() != _dimensions)
 		throw RuntimeException(TRACE_INFO,"Vector needs to be the same lenght as the number of dimensions!");
@@ -380,13 +462,19 @@ double * CHist<c_typ>::vecToArray(DVec vec) const
 }
 
 template <typename c_typ>
-void CHist<c_typ>::insert(DVec posv,c_typ c)
+DVec CHist<c_typ>::arrayToVec(const double * arr) const
+{
+	return DVec(arr,arr + _dimensions);
+}
+
+template <typename c_typ>
+void CHist<c_typ>::insert(DVec posv,const c_typ & c)
 {
 	return insert(vecToArray(posv),c);
 }
 
 template <typename c_typ>
-void CHist<c_typ>::insert(double * pos,c_typ c)
+void CHist<c_typ>::insert(double * pos,const c_typ & c)
 {
 	//Update limits if necesary
 	auto size = sizeof(double)*_dimensions;
@@ -403,22 +491,23 @@ void CHist<c_typ>::insert(double * pos,c_typ c)
 		insertMerge(pos,c);
 	else
 		insertFill(pos,c);
-	_total_count++;
+	_total_count += get_count(c);
 }
 
 template <typename c_typ>
-void CHist<c_typ>::insertFill(double * pos,c_typ c)
+void CHist<c_typ>::insertFill(double * pos, const c_typ & c_val)
 {
 	uint i;
 	double mindist = std::numeric_limits<double>::infinity();
+	auto size = sizeof(double) * _dimensions;
 	uint minidx = -1;
 	for (i = 0; i < _size; )
 	{
-		if (nodes[i].count == 0)
+		if (nodes[i].pos == nullptr)
 		{
 			_count_elems++;
 			nodes[i].pos = pos;
-			nodes[i].count = c;
+			nodes[i].value = c_val;
 
 			if (i == 0)
 				return;
@@ -427,9 +516,9 @@ void CHist<c_typ>::insertFill(double * pos,c_typ c)
 			return;
 		}
 
-		if (nodes[i].pos == pos)
+		if (memcmp(nodes[i].pos,pos,size) == 0)
 		{
-			nodes[i].count += c;
+			merge_count(nodes[i].value,c_val);
 			return;
 		}
 		else
@@ -447,29 +536,27 @@ void CHist<c_typ>::insertFill(double * pos,c_typ c)
 	}
 
 	uint idx = parent(i);
-	if (cmp(nodes[idx].pos,pos) == cmp(nodes[parent(idx)].pos,nodes[idx].pos))
+	uint p = parent(idx);
+	uint dir = get_dir(p,idx);
+	//std::cout << "Before make_space\n";
+	//print();
+	make_space(p,dir);
+	//std::cout << "After make_space\n";
+	//print();
+	if (nodes[idx].pos == nullptr)
 	{
-		uint p = parent(idx);
-		uint dir = get_dir(p,idx);
-		//std::cout << "Before make_space\n";
-		//print();
-		make_space(p,dir);
-		//std::cout << "After make_space\n";
-		//print();
-		if (nodes[idx].count == 0)
-		{
-			_count_elems++;
-			nodes[idx].pos = pos;
-			nodes[idx].count = c;
-			return;
-		}
+		_count_elems++;
+		nodes[idx].pos = pos;
+		nodes[idx].value = c_val;
+		return;
 	}
+	//}
 
-	mergeNode(minidx,pos,c);
+	mergeNode(minidx,pos,c_val);
 }
 
 template <typename c_typ>
-void CHist<c_typ>::insertMerge(double * pos,c_typ c)
+void CHist<c_typ>::insertMerge(double * pos,const c_typ & c)
 {
 	uint i;
 	double mindist = std::numeric_limits<double>::infinity();
@@ -494,7 +581,7 @@ void CHist<c_typ>::insertMerge(double * pos,c_typ c)
 
 		uint child_idx = cmp(nodes[i].pos,pos);
 		uint child_i = child(i,child_idx);
-		if (nodes[child_i].count == 0)
+		if (nodes[child_i].pos == nullptr)
 		{
 			mergeNode(minidx,pos,c);
 			return;
@@ -591,6 +678,25 @@ uint CHist<c_typ>::next(uint idx,uint &dir) const
 }
 
 template <typename c_typ>
+DVecSeq CHist<c_typ>::get_posvvec() const
+{
+	auto tmp = get_posavec();
+	DVecSeq res;
+	std::transform(tmp.begin(),tmp.end(),std::back_inserter(res),
+	               [this](const double * arr) { return this->arrayToVec(arr); });
+	return res;
+}
+
+template <typename c_typ>
+std::vector<double*> CHist<c_typ>::get_posavec() const
+{
+	std::vector<double*> res;
+	for (auto elem : nodes)
+		res.push_back(elem.pos);
+	return res;
+}
+
+template <typename c_typ>
 c_typ CHist<c_typ>::get(DVec pos) const
 {
 	return get(vecToArray(pos));
@@ -603,7 +709,7 @@ c_typ CHist<c_typ>::get(double * pos) const
 	while (idx < _size || nodes[idx].pos == nullptr)
 	{
 		if (nodes[idx].pos == pos)
-			return nodes[idx].count;
+			return nodes[idx].value;
 		uint dir = cmp(nodes[idx].pos,pos);
 		idx = child(idx,dir);
 	}
@@ -626,7 +732,7 @@ c_typ CHist<c_typ>::get_avg(double * pos) const
 	while (idx < _size && nodes[idx].pos != nullptr)
 	{
 		if (eq(nodes[idx].pos,pos))
-			return nodes[idx].count;
+			return nodes[idx].value;
 
 		double tmp = dist(nodes[idx].pos,pos);
 		if (tmp < mindist)
@@ -642,7 +748,7 @@ c_typ CHist<c_typ>::get_avg(double * pos) const
 	double dist1 = dist(n1.pos,pos);
 	double s1 = 1/dist1;
 
-	c_typ sum1 = n1.count * s1;
+	c_typ sum1 = n1.value * s1;
 	double sum2 = s1;
 
 	for (uint i = 1; i <= _subs; i++)
@@ -654,7 +760,7 @@ c_typ CHist<c_typ>::get_avg(double * pos) const
 		Node<c_typ> n2 = nodes[neighbor_idx];
 		double dist2 = dist(n2.pos,pos);
 		double s2 = 1/dist2;
-		sum1 += n2.count * s2;
+		sum1 += n2.value * s2;
 		sum2 += s2;
 
 		std::cout << Node<c_typ>::to_string(*this,n2) << "dist: "<< dist2 << std::endl;
@@ -716,7 +822,7 @@ void CHist<c_typ>::dumpP(uint idx) const
 		dumpP(child_l);
 
 	std::cout << to_string(nodes[idx].pos)
-			  << "," << nodes[idx].count << std::endl;
+			  << "," << nodes[idx].value << std::endl;
 
 	uint child_r = child(idx,2);
 	if (child_r < _size && nodes[child_r].pos != nullptr)
@@ -724,34 +830,54 @@ void CHist<c_typ>::dumpP(uint idx) const
 }
 
 template <typename c_typ>
-void CHist<c_typ>::print() const
+std::string CHist<c_typ>::to_string() const
 {
-	std::cout << "limits: ";
+	std::stringstream ss;
+	ss << "\nlimits: ";
+
 	for (uint i = 0; i < _subs; i++)
-		std::cout << "i: " << (i+1) << "," << to_string(limits[i]) << " ";
-	std::cout << std::endl;
-	print(0,0);
-	std::cout << std::endl;
+		ss << "i: " << (i+1) << "," << to_string(limits[i]) << " ";
+
+	ss << std::endl
+	   << to_string(0,0)
+	   << std::endl;
+
+	return ss.str();
 }
 
 template <typename c_typ>
-void CHist<c_typ>::print(uint idx, uint d) const
+std::string CHist<c_typ>::to_string(uint idx, uint d) const
 {
+	std::stringstream ss;
 	uint i;
 
 	if (_size <= idx || nodes[idx].pos == nullptr)
-		return;
+		return "";
 
 	for (i=0; i<d; i++)
-		printf("  ");
-	printf("%i: ", idx);
+		ss << "  ";
+	ss << idx << ": ";
 
-	std::cout << "pos: " << to_string(nodes[idx].pos)
-			  << " count: " << nodes[idx].count << std::endl;
+	std::stringstream sstmp;
+	sstmp << nodes[idx].value;
+	std::string tmp = sstmp.str();
+	boost::replace_all(tmp,"\n","\n    ");
+
+	ss << "pos: " << to_string(nodes[idx].pos)
+	   << " count: " << tmp  << std::endl;
+
 	for (uint i = 1; i <= _subs; i ++)
 	{
-		print(child(idx,i),d+1);
+		ss << to_string(child(idx,i),d+1);
 	}
+
+	return ss.str();
+}
+
+template <typename c_typ>
+void CHist<c_typ>::print() const
+{
+	std::cout << to_string();
 }
 
 template <typename c_typ>
@@ -764,7 +890,7 @@ CHist<c_typ> CHist<c_typ>::copy() const
 	for (uint i = 0; i < _size; i++)
 	{
 		memcpy(res.nodes[i].pos,nodes[i].pos,size);
-		res.nodes[i].count = nodes[i].count;
+		res.nodes[i].value = nodes[i].value;
 	}
 
 	for (uint i = 0; i < _subs; i++)
@@ -788,16 +914,21 @@ CHist<c_typ> CHist<c_typ>::merge(const CHist<c_typ> &h1, const CHist<c_typ> &h2)
 	for (uint i = 0; i < h1._size; i++)
 	{
 		Node<c_typ> n1 = h1.nodes[i];
-		double *n1pos = (double*)malloc(size);
-		memcpy(n1pos,n1.pos,size);
-		res.insert(n1pos,n1.count);
+		if (n1.pos != nullptr)
+		{
+			double *n1pos = (double*)malloc(size);
+			memcpy(n1pos,n1.pos,size);
+			res.insert(n1pos,n1.value);
+		}
 
 		Node<c_typ> n2 = h2.nodes[i];
-		double *n2pos = (double*)malloc(size);
-		memcpy(n2pos,n2.pos,size);
-		res.insert(n2pos,n2.count);
+		if (n2.pos != nullptr)
+		{
+			double *n2pos = (double*)malloc(size);
+			memcpy(n2pos,n2.pos,size);
+			res.insert(n2pos,n2.value);
+		}
 	}
-
 
 	for (uint i = 0; i < res._subs; i++)
 		if ((i+1) == res.cmp(h1.limits[i],h2.limits[i]))
@@ -836,7 +967,7 @@ CHist<c_typ>& CHist<c_typ>::operator+=(const CHist<c_typ>& val)
 	if (_size != val.size() && _dimensions != val.dimensions())
 		throw RuntimeException(TRACE_INFO,"Wrong size or dimensions!");
 	for (uint i = 0; i < _size; i++)
-		nodes[i].count += val.nodes[i].count;
+		nodes[i].value += val.nodes[i].value;
 	return *this;
 }
 
@@ -844,7 +975,7 @@ template <typename c_typ>
 CHist<c_typ>& CHist<c_typ>::operator+=(const double& val)
 {
 	for (auto node : nodes)
-		node.count += val;
+		node.value += val;
 	return *this;
 }
 
@@ -852,7 +983,7 @@ template <typename c_typ>
 CHist<c_typ>& CHist<c_typ>::operator-=(const double& val)
 {
 	for (auto node : nodes)
-		node.count -= val;
+		node.value -= val;
 	return *this;
 }
 
@@ -860,7 +991,7 @@ template <typename c_typ>
 CHist<c_typ>& CHist<c_typ>::operator*=(const double& val)
 {
 	for (auto node : nodes)
-		node.count *= val;
+		node.value *= val;
 	return *this;
 }
 
@@ -868,15 +999,8 @@ template <typename c_typ>
 CHist<c_typ>& CHist<c_typ>::operator/=(const double& val)
 {
 	for (auto node : nodes)
-		node.count /= val;
+		node.value /= val;
 	return *this;
-}
-
-template <typename c_typ>
-std::ostream& operator<<(std::ostream& os, const CHist<c_typ>& chist)
-{
-	os << chist.print() << std::endl;
-	return os;
 }
 
 template <typename c_typ>
@@ -902,34 +1026,55 @@ template <typename c_typ>
 std::string Node<c_typ>::to_string(const CHist<c_typ> &h,Node<c_typ> n)
 {
 	std::stringstream ss;
-	ss << "Node pos,count: " << h.to_string(n.pos) << "," << n.count << " ";
+	ss << "Node pos,count: " << h.to_string(n.pos) << "," << n.value << " ";
 	return ss.str();
 }
 
+namespace opencog
+{
+
 double get_count(const Node<double>& val)
 {
-	return val.count;
+	return val.value;
 }
 
 double get_count(const Node<CHist<double>>& val)
 {
-	return val.count.total_count();
+	return val.value.total_count();
 }
 
 void update_count(Node<double>& val, double c)
 {
-	val.count = c;
+	val.value = c;
 }
 
 void update_count(Node<CHist<double>>& val, double c)
 {
-	double tc = val.count.total_count();
+	double tc = val.value.total_count();
 
-	for (auto i = val.count.begin(); i != val.count.end(); i++)
+	for (auto i = val.value.begin(); i != val.value.end(); i++)
 	{
-		double ec = i->count;
-		i->count = ec / tc * c;
+		double ec = i->value;
+		i->value = ec / tc * c;
 	}
+}
+
+void merge_count(double& val, double c)
+{
+	val += c;
+}
+void merge_count(CHist<double>& val, CHist<double> c)
+{
+	std::cout << "Merge Count CHist<double>\n";
+	val = CHist<double>::merge(val,c);
+}
+void merge_count(Node<double>& val, double c)
+{
+	val.value += c;
+}
+void merge_count(Node<CHist<double>>& n1, Node<CHist<double>> n2)
+{
+	n1.value = CHist<double>::merge(n1.value,n2.value);
 }
 
 double get_count(const double& val)
@@ -953,7 +1098,9 @@ void update_count(CHist<double>& val, double c)
 
 	for (auto i = val.begin(); i != val.end(); i++)
 	{
-		double ec = i->count;
-		i->count = ec / tc * c;
+		double ec = i->value;
+		i->value = ec / tc * c;
 	}
+}
+
 }

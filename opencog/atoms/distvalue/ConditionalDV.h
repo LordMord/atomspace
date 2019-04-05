@@ -42,16 +42,12 @@ namespace opencog
 {
 
 class DistributionalValue;
-typedef std::vector<double> Interval;
-typedef std::vector<Interval> NdimBin;
-typedef std::vector<NdimBin> NdimBinSeq;
-typedef Counter<NdimBin, double> Histogram<double>;
 typedef std::shared_ptr<const DistributionalValue> DistributionalValuePtr;
 
 class ConditionalDV;
 typedef std::shared_ptr<const ConditionalDV> ConditionalDVPtr;
 
-typedef std::map<NdimBin,Histogram<double>> CDVrep;
+typedef CHist<CHist<double>> CDVrep;
 
 /*
  * This class is used for conditional distributions. It's represented by a
@@ -70,22 +66,23 @@ class ConditionalDV
 public:
 	ConditionalDV();
 	ConditionalDV(const CDVrep&);
-	ConditionalDV(const NdimBinSeq&,const std::vector<DistributionalValuePtr>&);
+	ConditionalDV(const DVecSeq &conds,
+                      const std::vector<DistributionalValuePtr> &dvs);
 
 	const CDVrep& value() const { return _value; }
 
 	static ConditionalDVPtr createCDV();
 	static ConditionalDVPtr createCDV(const CDVrep&);
-	static ConditionalDVPtr createCDV(const NdimBinSeq&,
-									  const std::vector<DistributionalValuePtr>&);
+	static ConditionalDVPtr createCDV(const DVecSeq &conds,
+                                          const std::vector<DistributionalValuePtr> &dvs);
 
 	ConditionalDVPtr merge(ConditionalDVPtr) const;
 
-	NdimBinSeq get_conditions() const;
+	DVecSeq get_conditions() const;
 	std::vector<DistributionalValuePtr> get_unconditionals() const;
 
-	Histogram<double> get_unconditionalP(const NdimBin&) const;
-	DistributionalValuePtr get_unconditional(const NdimBin&) const;
+	CHist<double> get_unconditionalP(const DVec&) const;
+	DistributionalValuePtr get_unconditional(const DVec&) const;
 	DistributionalValuePtr get_unconditional(DistributionalValuePtr) const;
 
 	DistributionalValuePtr get_joint_probability(DistributionalValuePtr) const;

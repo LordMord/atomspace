@@ -1,7 +1,7 @@
 ADD_LIBRARY (distvalue
-	#DistributionalValue.cc
-	#ConditionalDV.cc
-	#DVFormulas.cc
+	DistributionalValue.cc
+	ConditionalDV.cc
+	DVFormulas.cc
 	#DistributionalValueSCM.cc
 	#Histogram.cc
 	#Interval.cc

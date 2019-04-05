@@ -66,11 +66,16 @@ DVec DVFormulas::get_key_max(const NdimBin &k)
 //Result has the same total_count as dv2
 ConditionalDVPtr DVFormulas::joint_to_cdv(DistributionalValuePtr dv1,
                                           DistributionalValuePtr dv2,
-                                          int idx)
+                                          uint idx)
 {
-	CDVrep res;
 	size_t dv1dims = dv1->value().dimensions();
-	size_t dv2dims = dv2->value().dimensiosn();
+	size_t dv2dims = dv2->value().dimensions();
+
+	size_t dv1size = dv1->value().size();
+	size_t dv2size = dv2->value().size();
+
+	CDVrep res = CDVrep(dv1size / dv2size,dv2dims);
+
 	if (dv1dims <= 1)
 		throw RuntimeException(TRACE_INFO,"Can't divide non Joint DV.");
 	if (dv1dims - 1 != dv2dims)
@@ -78,7 +83,7 @@ ConditionalDVPtr DVFormulas::joint_to_cdv(DistributionalValuePtr dv1,
 
 	for (auto elem : dv1->value())
 	{
-		size = sizeof(double);
+		auto size = sizeof(double);
 		double * hs = (double*)malloc(size * dv2dims);
 
 		//get the consequent
@@ -86,7 +91,7 @@ ConditionalDVPtr DVFormulas::joint_to_cdv(DistributionalValuePtr dv1,
 		memcpy(h,elem.pos+idx,size);
 		//remove it from the condition
 		int j = 0;
-		for (int = 0; i < dv2dims; i++)
+		for (uint i = 0; i < dv2dims; i++)
 		{
 			if (i != idx)
 			{
@@ -95,10 +100,19 @@ ConditionalDVPtr DVFormulas::joint_to_cdv(DistributionalValuePtr dv1,
 			}
 		}
 
-		if (dv2->get_contained_mean(hs) != 0)
-			res[hs][h] = dv1->get_mean_for(elem.count)
-				/ dv2->get_contained_mean(hs)
-				* dv2->total_count();
+		DVec hsv = res.arrayToVec(hs);
+
+		if (dv2->get_contained_mean(hsv) != 0)
+		{
+			double count = dv1->get_mean_for(elem.value) /
+							dv2->get_contained_mean(hsv) *
+							dv2->total_count();
+
+			CHist<double> val = CHist<double>(dv2size,1);
+			val.insert(h,count);
+			res.insert(hs,val);
+		}
+
 	}
 	return ConditionalDV::createCDV(res);
 }
