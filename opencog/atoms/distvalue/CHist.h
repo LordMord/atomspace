@@ -199,6 +199,11 @@ class CHist : boost::arithmetic2<CHist<c_typ>,double>
 	 */
 	DVec minmax_count() const;
 
+	/*
+	 * Helper for Next Function
+	 */
+	uint nextP(uint,uint&) const;
+
 public:
 
 	CHist(uint s = 0,uint d = 0);
@@ -215,17 +220,30 @@ public:
 	uint child_loop(uint,uint) const;
 	uint next(uint,uint&) const;
 
-	iterator<c_typ> begin() {return iterator<c_typ>(child_loop(0,1),2,*this);}
+	iterator<c_typ> begin()
+	{
+		if (_count_elems == 0)
+			return end();
+		return iterator<c_typ>(child_loop(0,1),2,*this);
+	}
 	iterator<c_typ> end() {return iterator<c_typ>(0,0,*this);}
 
 	const_iterator<c_typ> begin() const
-	{return const_iterator<c_typ>(child_loop(0,1),2,*this);}
+	{
+		if (_count_elems == 0)
+			return end();
+		return const_iterator<c_typ>(child_loop(0,1),2,*this);
+	}
 
 	const_iterator<c_typ> end() const
 	{return const_iterator<c_typ>(0,0,*this);}
 
 	const_iterator<c_typ> cbegin() const
-	{return const_iterator<c_typ>(child_loop(0,1),2,*this);}
+	{
+		if (_count_elems == 0)
+			return cend();
+		return const_iterator<c_typ>(child_loop(0,1),2,*this);
+	}
 
 	const_iterator<c_typ> cend() const
 	{return const_iterator<c_typ>(0,0,*this);}
@@ -308,6 +326,16 @@ public:
 
 	CHist<c_typ>& operator=(const CHist<c_typ>& other);
 
+	Node<c_typ>& operator[](int idx)
+	{
+		return nodes[idx];
+	}
+
+	Node<c_typ> operator[](int idx) const
+	{
+		return nodes[idx];
+	}
+
 	friend std::ostream& operator<<(std::ostream& os, const CHist<c_typ>& chist)
 	{
 		os << chist.to_string() << std::endl;
@@ -317,6 +345,9 @@ public:
 
 template class CHist<double>;
 template class CHist<CHist<double>>;
+
+template class Node<double>;
+template class Node<CHist<double>>;
 
 double get_count(const double& val);
 double get_count(const CHist<double>& val);

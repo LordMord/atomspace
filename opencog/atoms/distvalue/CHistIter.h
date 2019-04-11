@@ -60,6 +60,13 @@ public:
 	const Node<c_typ>& operator*();
 
 	pointer operator->();
+
+	friend std::ostream& operator<<(std::ostream& os,
+									const iterator_template<c_typ,pointer,ref> & iter)
+	{
+		os << "Iteridx: " << iter.idx << " dir: " << iter.dir << std::endl;
+		return os;
+	}
 };
 
 template<typename c_typ>

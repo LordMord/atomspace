@@ -43,8 +43,9 @@ DistributionalValue::DistributionalValue()
 }
 
 DistributionalValue::DistributionalValue(const CHist<double> &hist)
-	: Value(DISTRIBUTIONAL_VALUE) , _value(hist)
+	: Value(DISTRIBUTIONAL_VALUE) //, _value(hist)
 {
+	_value = hist;
 }
 
 //Create a DV from the Parameters of a SimpleTV
@@ -63,7 +64,8 @@ DistributionalValue::DistributionalValue(double mode,double conf)
 
 DistributionalValuePtr DistributionalValue::createDV(const CHist<double> &hist)
 {
-	return std::make_shared<const DistributionalValue>(hist);
+	auto res = std::make_shared<const DistributionalValue>(hist);
+	return res;
 }
 
 DistributionalValuePtr DistributionalValue::createDV(double mode,

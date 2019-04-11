@@ -62,9 +62,14 @@ double* CHist<c_typ>::div(double * ds, double d) const
 template <typename c_typ>
 bool CHist<c_typ>::eq(double * ds1, double * ds2) const
 {
+	if (ds1 == nullptr && ds2 == nullptr)
+		return true;
+	if (ds1 == nullptr || ds2 == nullptr)
+		return false;
 	for (uint i = 0; i < _dimensions; i++)
 		if (!is_approx_eq_ulp(*(ds1+i),*(ds2+i),24))
 			return false;
+
 	return true;
 }
 
@@ -79,6 +84,9 @@ CHist<c_typ>::CHist(uint s,uint d)
 	: _size(s) , _count_elems(0) , _total_count(0)
 	, _subs(pow(2,d)) , _dimensions(d)
 {
+	auto levels = std::log2(s+1);
+	if (std::floor(levels) != std::ceil(levels))
+		throw RuntimeException(TRACE_INFO,"Not a prooper size. size = 2^x-1");
 	if (d >= 32)
 		throw RuntimeException(TRACE_INFO,"More then 31 Dimensions not supported.");
 	nodes.resize(s);
@@ -297,6 +305,9 @@ void CHist<c_typ>::rotate_up(uint idx)
 	if (nodes[idx].pos == nullptr || idx >= _size)
 		return;
 
+	if (idx == 0)
+		throw RuntimeException(TRACE_INFO,"Can't rotate_up root node.");
+
 	uint p = parent(idx);
 
 	uint child_idx = idx - p * _subs;
@@ -416,6 +427,8 @@ void CHist<c_typ>::make_space(uint idx, uint dir)
 		uint min;
 		uint max;
 		uint max_idx = min_max_heights(idx,&min,&max);
+
+		std::cout << "min: " << min << "max: " << max;
 
 		if (1 <= (max-min))
 		{
@@ -543,6 +556,7 @@ void CHist<c_typ>::insertFill(double * pos, const c_typ & c_val)
 	make_space(p,dir);
 	//std::cout << "After make_space\n";
 	//print();
+
 	if (nodes[idx].pos == nullptr)
 	{
 		_count_elems++;
@@ -641,10 +655,22 @@ uint CHist<c_typ>::child_loop(uint idx,uint dir) const
 template <typename c_typ>
 uint CHist<c_typ>::next(uint idx,uint &dir) const
 {
+	uint res = nextP(idx,dir);
+	if (nodes[res].pos == nullptr)
+		return next(res,dir);
+	return res;
+}
+
+template <typename c_typ>
+uint CHist<c_typ>::nextP(uint idx,uint &dir) const
+{
+	if (dir == 0)
+		return idx;
+
 	while (dir <= _subs)
 	{
 		uint child_idx = child(idx,dir);
-		if (child_idx < _size && nodes[child_idx].pos != nullptr)
+		if (child_idx < _size)
 		{
 			dir = 2;
 			return child_loop(child_idx,1);
@@ -653,20 +679,15 @@ uint CHist<c_typ>::next(uint idx,uint &dir) const
 	}
 
 	uint p = parent(idx);
-	if (p == 0 && child(p,_subs) == idx)
-	{
-		dir = 0;
-		return 0;
-	}
 	while (child(p,_subs) == idx)
 	{
-		idx = p;
-		p = parent(idx);
 		if (p == 0 && child(p,_subs) == idx)
 		{
 			dir = 0;
 			return 0;
 		}
+		idx = p;
+		p = parent(idx);
 	}
 
 	dir = 1 + get_dir(p,idx);
@@ -692,7 +713,8 @@ std::vector<double*> CHist<c_typ>::get_posavec() const
 {
 	std::vector<double*> res;
 	for (auto elem : nodes)
-		res.push_back(elem.pos);
+		if (elem.pos != nullptr)
+			res.push_back(elem.pos);
 	return res;
 }
 
@@ -746,6 +768,7 @@ c_typ CHist<c_typ>::get_avg(double * pos) const
 
 	Node<c_typ> n1 = nodes[minidx];
 	double dist1 = dist(n1.pos,pos);
+	uint mdir = cmp(pos,n1.pos);
 	double s1 = 1/dist1;
 
 	c_typ sum1 = n1.value * s1;
@@ -753,6 +776,9 @@ c_typ CHist<c_typ>::get_avg(double * pos) const
 
 	for (uint i = 1; i <= _subs; i++)
 	{
+		if (i == mdir)
+			continue;
+
 		uint neighbor_idx = neighbor(minidx,i);
 		if (neighbor_idx == (uint)-1)
 			continue;
@@ -762,13 +788,60 @@ c_typ CHist<c_typ>::get_avg(double * pos) const
 		double s2 = 1/dist2;
 		sum1 += n2.value * s2;
 		sum2 += s2;
-
-		std::cout << Node<c_typ>::to_string(*this,n2) << "dist: "<< dist2 << std::endl;
 	}
-
 	return sum1 / sum2;
 }
 
+template <>
+CHist<double> CHist<CHist<double>>::get_avg(double * pos) const
+{
+	double mindist = std::numeric_limits<double>::infinity();
+	uint minidx = -1;
+
+	uint idx = 0;
+	while (idx < _size && nodes[idx].pos != nullptr)
+	{
+		if (eq(nodes[idx].pos,pos))
+			return nodes[idx].value;
+
+		double tmp = dist(nodes[idx].pos,pos);
+		if (tmp < mindist)
+		{
+			mindist = tmp;
+			minidx = idx;
+		}
+		uint dir = cmp(nodes[idx].pos,pos);
+		idx = child(idx,dir);
+	}
+
+	Node<CHist<double>> n1 = nodes[minidx];
+	double dist1 = dist(n1.pos,pos);
+	uint mdir = cmp(pos,n1.pos);
+	double s1 = 1/dist1;
+
+	auto size = std::pow(2,std::log2(_size+1) + std::log2(n1.value.size()+1)) - 1;
+	auto dims = n1.value.dimensions();
+	CHist<double> sum1 = CHist<double>(size,dims);
+	sum1 += n1.value * s1;
+	double sum2 = s1;
+
+	for (uint i = 1; i <= _subs; i++)
+	{
+		if (i == mdir)
+			continue;
+
+		uint neighbor_idx = neighbor(minidx,i);
+		if (neighbor_idx == (uint)-1)
+			continue;
+
+		Node<CHist<double>> n2 = nodes[neighbor_idx];
+		double dist2 = dist(n2.pos,pos);
+		double s2 = 1/dist2;
+		sum1 += n2.value * s2;
+		sum2 += s2;
+	}
+	return sum1 / sum2;
+}
 template <typename c_typ>
 uint CHist<c_typ>::neighbor(uint idx,uint dir) const
 {
@@ -778,6 +851,9 @@ uint CHist<c_typ>::neighbor(uint idx,uint dir) const
 	{
 		return child_loop(c,opp);
 	}
+
+	if (idx == 0)
+		return -1;
 
 	uint p = parent(idx);
 	uint pdir = get_dir(p,idx);
@@ -902,42 +978,64 @@ CHist<c_typ> CHist<c_typ>::copy() const
 template <typename c_typ>
 CHist<c_typ> CHist<c_typ>::merge(const CHist<c_typ> &h1, const CHist<c_typ> &h2)
 {
-	if (h1._size != h2._size)
-		throw RuntimeException(TRACE_INFO,"CHists must be same size");
+	//if (h1._size != h2._size)
+    //	throw RuntimeException(TRACE_INFO,"CHists must be same size");
 	if (h1._subs != h2._subs)
 		throw RuntimeException(TRACE_INFO,"CHists must be same dimensions");
 
-	CHist res = CHist(h1._size,h1._dimensions);
+	CHist res = CHist(std::max(h1._size,h2._size),h1._dimensions);
 
 	auto size = sizeof(double)*res._dimensions;
 
-	for (uint i = 0; i < h1._size; i++)
+	auto it1 = h1.nodes.begin();
+	auto it2 = h2.nodes.begin();
+	auto end1 = h1.nodes.end();
+	auto end2 = h2.nodes.end();
+	bool first = false;
+
+	while (it1 != end1 && it2 != end2)
 	{
-		Node<c_typ> n1 = h1.nodes[i];
-		if (n1.pos != nullptr)
+		first = !first;
+		if (first)
 		{
-			double *n1pos = (double*)malloc(size);
-			memcpy(n1pos,n1.pos,size);
-			res.insert(n1pos,n1.value);
-		}
-
-		Node<c_typ> n2 = h2.nodes[i];
-		if (n2.pos != nullptr)
-		{
-			double *n2pos = (double*)malloc(size);
-			memcpy(n2pos,n2.pos,size);
-			res.insert(n2pos,n2.value);
-		}
-	}
-
-	for (uint i = 0; i < res._subs; i++)
-		if ((i+1) == res.cmp(h1.limits[i],h2.limits[i]))
-		{
-			memcpy(res.limits[i],h2.limits[i],size);
+			if (it1 == end1)
+				continue;
+			Node<c_typ> n1 = *it1;
+			if (n1.pos != nullptr)
+			{
+				double *n1pos = (double*)malloc(size);
+				memcpy(n1pos,n1.pos,size);
+				res.insert(n1pos,n1.value);
+			}
+			it1++;
 		}
 		else
 		{
-			memcpy(res.limits[i],h1.limits[i],size);
+			if (it2 == end2)
+				continue;
+			Node<c_typ> n2 = *it2;
+			if (n2.pos != nullptr)
+			{
+				double *n2pos = (double*)malloc(size);
+				memcpy(n2pos,n2.pos,size);
+				res.insert(n2pos,n2.value);
+			}
+			it2++;
+		}
+	}
+
+
+	if (h1._count_elems != 0 && h2._count_elems != 0)
+		for (uint i = 0; i < res._subs; i++)
+		{
+			if (h1._count_elems == 0)
+				memcpy(res.limits[i],h2.limits[i],size);
+			else if (h2._count_elems == 0)
+				memcpy(res.limits[i],h1.limits[i],size);
+			else if ((i+1) == res.cmp(h1.limits[i],h2.limits[i]))
+				memcpy(res.limits[i],h2.limits[i],size);
+			else
+				memcpy(res.limits[i],h1.limits[i],size);
 		}
 
 	return res;
@@ -964,42 +1062,49 @@ bool CHist<c_typ>::operator==(const CHist<c_typ> &other) const
 template <typename c_typ>
 CHist<c_typ>& CHist<c_typ>::operator+=(const CHist<c_typ>& val)
 {
-	if (_size != val.size() && _dimensions != val.dimensions())
-		throw RuntimeException(TRACE_INFO,"Wrong size or dimensions!");
-	for (uint i = 0; i < _size; i++)
-		nodes[i].value += val.nodes[i].value;
+	*this = merge(*this,val);
 	return *this;
 }
 
 template <typename c_typ>
 CHist<c_typ>& CHist<c_typ>::operator+=(const double& val)
 {
-	for (auto node : nodes)
+	_total_count = 0;
+	for (auto& node : nodes)
+	{
 		node.value += val;
+		_total_count += get_count(node);
+	}
 	return *this;
 }
 
 template <typename c_typ>
 CHist<c_typ>& CHist<c_typ>::operator-=(const double& val)
 {
-	for (auto node : nodes)
+	_total_count = 0;
+	for (auto& node : nodes)
+	{
 		node.value -= val;
+		_total_count += get_count(node);
+	}
 	return *this;
 }
 
 template <typename c_typ>
 CHist<c_typ>& CHist<c_typ>::operator*=(const double& val)
 {
-	for (auto node : nodes)
+	for (auto& node : nodes)
 		node.value *= val;
+	_total_count *= val;
 	return *this;
 }
 
 template <typename c_typ>
 CHist<c_typ>& CHist<c_typ>::operator/=(const double& val)
 {
-	for (auto node : nodes)
+	for (auto& node : nodes)
 		node.value /= val;
+	_total_count /= val;
 	return *this;
 }
 
@@ -1025,6 +1130,8 @@ std::string CHist<c_typ>::to_string(double * pos) const
 template <typename c_typ>
 std::string Node<c_typ>::to_string(const CHist<c_typ> &h,Node<c_typ> n)
 {
+	if (n.pos == nullptr)
+		return "Empty Node ";
 	std::stringstream ss;
 	ss << "Node pos,count: " << h.to_string(n.pos) << "," << n.value << " ";
 	return ss.str();

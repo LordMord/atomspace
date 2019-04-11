@@ -113,7 +113,10 @@ DistributionalValuePtr ConditionalDV::get_unconditional(const DVec &k) const
  */
 DistributionalValuePtr ConditionalDV::get_unconditional(DistributionalValuePtr condDist) const
 {
-	CHist<double> res;
+	auto size = std::pow(2,std::log2(_value.size()+1) +
+	                     std::log2(_value[0].value.size()+1)) - 1;
+	auto dims = _value[0].value.dimensions();
+	CHist<double> res = CHist<double>(size,dims);
 	for (auto v : condDist->_value)
 	{
 		double val = condDist->get_mean_for(v.value);
