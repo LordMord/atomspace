@@ -217,6 +217,7 @@ std::string DistributionalValue::to_string(const std::string& indent) const
 	std::stringstream ss;
 	if (_value.size() == 0)
 		ss << "Empty DistributionalValue" << std::endl;
+
 	for (auto elem : _value)
 	{
 		ss << Node<double>::to_string(_value,elem)

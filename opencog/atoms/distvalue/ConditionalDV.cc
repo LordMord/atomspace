@@ -142,24 +142,34 @@ double ConditionalDV::avg_count() const
 	return res / count;
 }
 
-
 //Given a Distribution of the Condition calculate a Joint Probability distribution
 DistributionalValuePtr ConditionalDV::get_joint_probability(DistributionalValuePtr base) const
 {
-	double nsize = base->_value.size() * _value.begin()->value.size();
-	double dims = base->_value.dimensions() + _value.begin()->value.dimensions();
-	CHist<double> res = CHist<double>(nsize,dims);
+	auto t1 = base->_value.dimensions();
+	auto t2 = _value.begin()->value.dimensions();
+	double dims = t1 + t2;
+	uint levels = base->_value.levels() + _value[0].value.levels();
+	auto size = CHist<double>::levelsToSize(levels,pow(2,dims));
+	CHist<double> res = CHist<double>(size,dims);
 	DVecSeq ivsBASE = base->_value.get_posvvec();
+
+	//std::cout << base->to_string();
+	//std::cout << ivsBASE.size();
+
 	for (auto k1 : ivsBASE) {
 		DistributionalValuePtr uncond = get_unconditional(k1);
 		DVecSeq ivsTHIS = uncond->_value.get_posvvec();
+		//std::cout << uncond->to_string();
+		//std::cout << ivsTHIS.size();
 		for (auto k2 : ivsTHIS) {
 			DVec k;
 			k.insert(k.end(),k1.begin(),k1.end());
 			k.insert(k.end(),k2.begin(),k2.end());
 
 			//Res count based on base count
-			res.insert(k,base->_value.get(k1) * uncond->get_mean(k2));
+			auto v1 = base->_value.get(k1);
+			auto v2 = uncond->get_mean(k2);
+			res.insert(k,v1 * v2);
 		}
 	}
 	return DistributionalValue::createDV(res);

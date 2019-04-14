@@ -84,9 +84,10 @@ CHist<c_typ>::CHist(uint s,uint d)
 	: _size(s) , _count_elems(0) , _total_count(0)
 	, _subs(pow(2,d)) , _dimensions(d)
 {
-	auto levels = std::log2(s+1);
-	if (std::floor(levels) != std::ceil(levels))
-		throw RuntimeException(TRACE_INFO,"Not a prooper size. size = 2^x-1");
+	_levels = sizeToLevels(s,_subs);
+	if (_size != levelsToSize(_levels,_subs))
+		throw RuntimeException(TRACE_INFO,"Not a prooper size.");
+
 	if (d >= 32)
 		throw RuntimeException(TRACE_INFO,"More then 31 Dimensions not supported.");
 	nodes.resize(s);
@@ -106,7 +107,7 @@ template <typename c_typ>
 CHist<c_typ>::CHist(const CHist<c_typ> & other)
 	: _size(other._size) , _count_elems(other._count_elems)
 	, _total_count(other._total_count) , _subs(other._subs)
-	, _dimensions(other._dimensions)
+	, _levels(other._levels) , _dimensions(other._dimensions)
 {
 	auto size = sizeof(double)*_dimensions;
 
@@ -144,6 +145,18 @@ CHist<c_typ>::~CHist()
 }
 
 template <typename c_typ>
+uint CHist<c_typ>::levelsToSize(uint levels,uint subs)
+{
+	return (std::pow(subs,levels) - 1) / (subs - 1);
+}
+
+template <typename c_typ>
+uint CHist<c_typ>::sizeToLevels(uint size,uint subs)
+{
+	return log(size * (subs - 1) + 1) / log(subs);
+}
+
+template <typename c_typ>
 CHist<c_typ>& CHist<c_typ>::operator=(const CHist<c_typ>& other)
 {
 	if (this == &other)
@@ -160,11 +173,12 @@ CHist<c_typ>& CHist<c_typ>::operator=(const CHist<c_typ>& other)
 	for (uint i = 0; i < _subs ; i++)
 		limits[i] = nullptr;
 
-	_size = other._size;
+	_size       = other._size;
 	_count_elems = other._count_elems;
 	_total_count = other._total_count;
-	_subs = other._subs;
+	_subs       = other._subs;
 	_dimensions = other._dimensions;
+	_levels     = other._levels;
 
 	auto size = sizeof(double)*_dimensions;
 
@@ -237,14 +251,14 @@ uint CHist<c_typ>::child(uint idx,uint child) const
 
 
 template <typename c_typ>
-uint CHist<c_typ>::height(uint idx) const
+int CHist<c_typ>::height(uint idx) const
 {
 	if (idx >= _size || nodes[idx].pos == nullptr)
 		return 0;
-	uint max = 0;
+	int max = 0;
 	for (uint i = 1; i <= _subs; i ++)
 	{
-		uint tmp = height(child(idx,i));
+		int tmp = height(child(idx,i));
 		if (tmp > max)
 			max = tmp;
 	}
@@ -294,9 +308,11 @@ void CHist<c_typ>::shift_down(uint idx,uint dir)
 }
 
 template <typename c_typ>
-uint CHist<c_typ>::child_opposite(uint child_idx) const
+uint CHist<c_typ>::opposite_dir(uint dir) const
 {
-	return child_idx + _subs - 1 - 2 * (child_idx - 1);
+	//Old didn't match cmp
+	//return child_idx + _subs - 1 - 2 * (child_idx - 1);
+	return ((dir - 1) + _subs / 2) % _subs + 1;
 }
 
 template <typename c_typ>
@@ -309,24 +325,26 @@ void CHist<c_typ>::rotate_up(uint idx)
 		throw RuntimeException(TRACE_INFO,"Can't rotate_up root node.");
 
 	uint p = parent(idx);
-
-	uint child_idx = idx - p * _subs;
-	uint child_opp = child_opposite(child_idx);
+	uint cdir = get_dir(p,idx);
+	uint cdir_opp = opposite_dir(cdir);
 
 	//Move down the parrents Children except idx
 	for (uint i = 1; i <= _subs; i ++)
 	{
-		if (i == child_idx)
+		if (i == cdir)
 			continue;
-		shift_down(child(p,i),child_opp);
+		if (i == cdir_opp)
+			shift_down(child(p,i),cdir_opp);
+		else
+			move_to(child(p,i),child(child(p,cdir_opp),i));
 	}
 	//Move down the parrent
-	nodes[child(p,child_opp)] = nodes[p];
+	nodes[child(p,cdir_opp )] = nodes[p];
 
 	//Move child_opp to other side of tree
-	move_to(child(idx,child_opp),child(child(p,child_opp),child_idx));
+	move_to(child(idx,cdir_opp),child(child(p,cdir_opp),cdir));
 	//Set it to 0 in original location
-	nodes[child(idx,child_opp)].pos = nullptr;
+	nodes[child(idx,cdir_opp)].pos = nullptr;
 
 	//Move idx Upwards
 	nodes[p] = nodes[idx];
@@ -336,31 +354,11 @@ void CHist<c_typ>::rotate_up(uint idx)
 	//Move Idx's children Upwards except child_opp
 	for (uint i = 1; i <= _subs; i ++)
 	{
-		if (i == child_opp)
+		if (i == cdir_opp)
 			continue;
 		move_to(child(idx,i),child(p,i));
 	}
 
-}
-
-template <typename c_typ>
-uint CHist<c_typ>::min_max_heights(uint idx, uint *min, uint *max) const
-{
-	*min = _size;
-	*max = 0;
-	uint max_idx = -1;
-	for (uint i = 1; i <= _subs; i ++)
-	{
-		uint tmp = height(child(idx,i));
-		if (tmp > *max)
-		{
-			*max = tmp;
-			max_idx = child(idx,i);
-		}
-		if (tmp < *min)
-			*min = tmp;
-	}
-	return max_idx;
 }
 
 template <typename c_typ>
@@ -387,21 +385,25 @@ uint CHist<c_typ>::get_dir(uint p,uint c) const
 }
 
 template <typename c_typ>
-void CHist<c_typ>::rebalance(uint idx)
+void CHist<c_typ>::rebalance(uint idx,uint dir)
 {
 	while (true)
 	{
-		uint min;
-		uint max;
-		uint max_idx = min_max_heights(idx,&min,&max);
-		uint child_idx = get_dir(idx,max_idx);
-		uint child_opp = child_opposite(child_idx);
+		uint c1 = child(idx,dir);
+		uint c2 = child(idx,opposite_dir(dir));
+		int h1 = height(c1);
+		int h2 = height(c2);
 
-		//std::cout << " idx: " << idx << " min: " << min
-	   // 	      << " max: " << max << " maxidx: " << max_idx << std::endl;
-
-		if (2 <= (max-min))
+		if (abs(h1-h2) > 1)
 		{
+			uint max_idx;
+			if (h1>h2)
+				max_idx = c1;
+			else
+				max_idx = c2;
+			uint child_idx = get_dir(idx,max_idx);
+			uint child_opp = opposite_dir(child_idx);
+
 			if (child(max_idx,child_opp) == max_height_child(max_idx))
 				rotate_up(child(max_idx,child_opp));
 			rotate_up(max_idx);
@@ -412,7 +414,9 @@ void CHist<c_typ>::rebalance(uint idx)
 			return;
 
 		//Check if we need to reblance the parent next
-		idx = parent(idx);
+		uint p = parent(idx);
+		dir = get_dir(p,idx);
+		idx = p;
 	}
 }
 
@@ -424,15 +428,17 @@ void CHist<c_typ>::make_space(uint idx, uint dir)
 {
 	while (true)
 	{
-		uint min;
-		uint max;
-		uint max_idx = min_max_heights(idx,&min,&max);
+		uint c1 = child(idx,dir);
+		uint c2 = child(idx,opposite_dir(dir));
+		int h1 = height(c1);
+		int h2 = height(c2);
 
-		std::cout << "min: " << min << "max: " << max;
-
-		if (1 <= (max-min))
+		if (abs(h1-h2) > 0)
 		{
-			rotate_up(max_idx);
+			if (h1>h2)
+				rotate_up(c1);
+			else
+				rotate_up(c2);
 			return;
 		}
 
@@ -499,7 +505,6 @@ void CHist<c_typ>::insert(double * pos,const c_typ & c)
 			if (i == cmp(limits[i-1],pos))
 				memcpy(limits[i-1],pos,size);
 
-	//std::cout << "s,c: " << _size << "," << _count_elems << "," << to_string(pos) << "\n";
 	if (_size == _count_elems)
 		insertMerge(pos,c);
 	else
@@ -512,7 +517,6 @@ void CHist<c_typ>::insertFill(double * pos, const c_typ & c_val)
 {
 	uint i;
 	double mindist = std::numeric_limits<double>::infinity();
-	auto size = sizeof(double) * _dimensions;
 	uint minidx = -1;
 	for (i = 0; i < _size; )
 	{
@@ -524,12 +528,13 @@ void CHist<c_typ>::insertFill(double * pos, const c_typ & c_val)
 
 			if (i == 0)
 				return;
-
-			rebalance(parent(i));
+			uint p = parent(i);
+			uint dir = get_dir(p,i);
+			rebalance(p,dir);
 			return;
 		}
 
-		if (memcmp(nodes[i].pos,pos,size) == 0)
+		if (eq(nodes[i].pos,pos))
 		{
 			merge_count(nodes[i].value,c_val);
 			return;
@@ -537,7 +542,6 @@ void CHist<c_typ>::insertFill(double * pos, const c_typ & c_val)
 		else
 		{
 			double tmp = dist(nodes[i].pos,pos);
-			//std::cout << "DistF: " << tmp << std::endl;
 			if (tmp < mindist)
 			{
 				mindist = tmp;
@@ -551,11 +555,7 @@ void CHist<c_typ>::insertFill(double * pos, const c_typ & c_val)
 	uint idx = parent(i);
 	uint p = parent(idx);
 	uint dir = get_dir(p,idx);
-	//std::cout << "Before make_space\n";
-	//print();
 	make_space(p,dir);
-	//std::cout << "After make_space\n";
-	//print();
 
 	if (nodes[idx].pos == nullptr)
 	{
@@ -564,7 +564,6 @@ void CHist<c_typ>::insertFill(double * pos, const c_typ & c_val)
 		nodes[idx].value = c_val;
 		return;
 	}
-	//}
 
 	mergeNode(minidx,pos,c_val);
 }
@@ -584,8 +583,6 @@ void CHist<c_typ>::insertMerge(double * pos,const c_typ & c)
 		}
 
 		double tmp = dist(nodes[i].pos,pos);
-
-		//std::cout << "Dist: " << tmp << std::endl;
 
 		if (tmp < mindist)
 		{
@@ -641,12 +638,12 @@ void CHist<c_typ>::insertMerge(double * pos,const c_typ & c)
 
 
 template <typename c_typ>
-uint CHist<c_typ>::child_loop(uint idx,uint dir) const
+uint CHist<c_typ>::child_loop(uint idx,uint dir,bool check) const
 {
 	while (true)
 	{
 		uint child_idx = child(idx,dir);
-		if (child_idx >= _size || nodes[child_idx].pos == nullptr)
+		if (child_idx >= _size || (check && nodes[child_idx].pos == nullptr))
 			return idx;
 		idx = child_idx;
 	}
@@ -670,10 +667,11 @@ uint CHist<c_typ>::nextP(uint idx,uint &dir) const
 	while (dir <= _subs)
 	{
 		uint child_idx = child(idx,dir);
+		//TODO: Improvment if one child is > size then all should be
 		if (child_idx < _size)
 		{
 			dir = 2;
-			return child_loop(child_idx,1);
+			return child_loop(child_idx,1,false);
 		}
 		dir++;
 	}
@@ -695,7 +693,7 @@ uint CHist<c_typ>::nextP(uint idx,uint &dir) const
 	if (dir-1 == _subs/2)
 		return p;
 	else
-		return next(p,dir);
+		return nextP(p,dir);
 }
 
 template <typename c_typ>
@@ -730,7 +728,7 @@ c_typ CHist<c_typ>::get(double * pos) const
 	uint idx = 0;
 	while (idx < _size || nodes[idx].pos == nullptr)
 	{
-		if (nodes[idx].pos == pos)
+		if (eq(nodes[idx].pos,pos))
 			return nodes[idx].value;
 		uint dir = cmp(nodes[idx].pos,pos);
 		idx = child(idx,dir);
@@ -819,8 +817,9 @@ CHist<double> CHist<CHist<double>>::get_avg(double * pos) const
 	uint mdir = cmp(pos,n1.pos);
 	double s1 = 1/dist1;
 
-	auto size = std::pow(2,std::log2(_size+1) + std::log2(n1.value.size()+1)) - 1;
 	auto dims = n1.value.dimensions();
+	uint levels = _levels + n1.value.levels();
+	auto size = levelsToSize(levels,pow(2,dims));
 	CHist<double> sum1 = CHist<double>(size,dims);
 	sum1 += n1.value * s1;
 	double sum2 = s1;
@@ -845,7 +844,7 @@ CHist<double> CHist<CHist<double>>::get_avg(double * pos) const
 template <typename c_typ>
 uint CHist<c_typ>::neighbor(uint idx,uint dir) const
 {
-	uint opp = child_opposite(dir);
+	uint opp = opposite_dir(dir);
 	uint c = child(idx,dir);
 	if (c < _size && nodes[c].pos != nullptr)
 	{
@@ -875,7 +874,7 @@ uint CHist<c_typ>::neighbor(uint idx,uint dir) const
 		}
 	}
 
-	uint opp_pdir = child_opposite(pdir);
+	uint opp_pdir = opposite_dir(pdir);
 	c = child(p,dir);
 	return child_loop(c,opp_pdir);
 
@@ -1044,17 +1043,24 @@ CHist<c_typ> CHist<c_typ>::merge(const CHist<c_typ> &h1, const CHist<c_typ> &h2)
 template <typename c_typ>
 bool CHist<c_typ>::operator==(const CHist<c_typ> &other) const
 {
+	//std::cout << "Operator==\n";
 	if (_size != other._size || _subs != other._subs ||
 	    _count_elems != other._count_elems || _total_count != other._total_count)
 		return false;
 
+	//std::cout << "Check1\n";
+	//std::cout << *this
+//			  << other;
+
 	for (uint i = 0; i < _subs; i++)
 		if (!eq(limits[i],other.limits[i]))
 			return false;
+	//std::cout << "Check2\n";
 
 	for (uint i = 0; i < _size; i++)
 		if (!eq(nodes[i],other.nodes[i]))
 			return false;
+	//std::cout << "Check3\n";
 
 	return true;
 }
@@ -1172,7 +1178,6 @@ void merge_count(double& val, double c)
 }
 void merge_count(CHist<double>& val, CHist<double> c)
 {
-	std::cout << "Merge Count CHist<double>\n";
 	val = CHist<double>::merge(val,c);
 }
 void merge_count(Node<double>& val, double c)
@@ -1210,4 +1215,14 @@ void update_count(CHist<double>& val, double c)
 	}
 }
 
+std::string to_string(const std::vector<double>& v)
+{
+	std::stringstream ss;
+	for (auto e : v)
+		ss << e << ",";
+	return ss.str();
 }
+
+}
+
+

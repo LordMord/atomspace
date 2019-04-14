@@ -62,6 +62,7 @@ class CHist : boost::arithmetic2<CHist<c_typ>,double>
 	uint _count_elems;
 	uint _total_count;
 	uint _subs;
+	uint _levels;
 	uint _dimensions;
 	std::vector<double*> limits;
 	std::vector<Node<c_typ>> nodes;
@@ -100,7 +101,7 @@ class CHist : boost::arithmetic2<CHist<c_typ>,double>
 	 * find the height of the sub-tree
 	 * starting at the index
 	 */
-	uint height(uint) const;
+	int height(uint) const;
 
 	/*
 	 * Given a Node and one of it's Children
@@ -112,7 +113,7 @@ class CHist : boost::arithmetic2<CHist<c_typ>,double>
 	 * Given a Direction to a Child
 	 * Find the Opposite Direction
 	 */
-	uint child_opposite(uint) const;
+	uint opposite_dir(uint) const;
 
 	/*
 	 * Given 2 indices move the sub-tree starting at the first
@@ -138,7 +139,7 @@ class CHist : boost::arithmetic2<CHist<c_typ>,double>
 	 * Check if the Tree needs to be rebalanced at the given Index
 	 * and all it's parents. And if needed does the rebalancing.
 	 */
-	void rebalance(uint);
+	void rebalance(uint,uint);
 
 	/*
 	 * If we want to add a node but there is no space in the tree anymore
@@ -146,13 +147,6 @@ class CHist : boost::arithmetic2<CHist<c_typ>,double>
 	 * requried position without destroying the order.
 	 */
 	void make_space(uint,uint);
-
-	/*
-	 * Helper function that given an Index stores the min and max
-	 * height of the Nodes Childrend in argument 2 and 3
-	 * and returns the Index of the Child with max height
-	 */
-	uint min_max_heights(uint, uint*, uint*) const;
 
 	/*
 	 * Helper function to find the Index of the Child of the given Node
@@ -213,18 +207,26 @@ public:
 	~CHist();
 
 	uint size() const {return _size;}
+	uint levels() const {return _levels;}
 	uint dimensions() const {return _dimensions;}
 	uint total_count() const {return _total_count;}
 	uint count_bins() const {return _count_elems;}
 
-	uint child_loop(uint,uint) const;
+	static uint levelsToSize(uint, uint);
+	static uint sizeToLevels(uint, uint);
+
+	uint child_loop(uint,uint,bool check = true) const;
 	uint next(uint,uint&) const;
 
 	iterator<c_typ> begin()
 	{
 		if (_count_elems == 0)
 			return end();
-		return iterator<c_typ>(child_loop(0,1),2,*this);
+		uint c = child_loop(0,1,false);
+		uint dir = 2;
+		if (nodes[c].pos == nullptr)
+			c = next(c,dir);
+		return iterator<c_typ>(c,dir,*this);
 	}
 	iterator<c_typ> end() {return iterator<c_typ>(0,0,*this);}
 
@@ -232,7 +234,11 @@ public:
 	{
 		if (_count_elems == 0)
 			return end();
-		return const_iterator<c_typ>(child_loop(0,1),2,*this);
+		uint c = child_loop(0,1,false);
+		uint dir = 2;
+		if (nodes[c].pos == nullptr)
+			c = next(c,dir);
+		return const_iterator<c_typ>(c,dir,*this);
 	}
 
 	const_iterator<c_typ> end() const
@@ -242,7 +248,11 @@ public:
 	{
 		if (_count_elems == 0)
 			return cend();
-		return const_iterator<c_typ>(child_loop(0,1),2,*this);
+		uint c = child_loop(0,1,false);
+		uint dir = 2;
+		if (nodes[c].pos == nullptr)
+			c = next(c,dir);
+		return const_iterator<c_typ>(c,dir,*this);
 	}
 
 	const_iterator<c_typ> cend() const
@@ -364,6 +374,9 @@ void merge_count(CHist<double>& val, CHist<double>c);
 void merge_count(Node<double>& val, double c);
 void merge_count(Node<CHist<double>>& val, Node<CHist<double>>c);
 
+std::string to_string(const std::vector<double>& v);
 }
+
+
 
 #endif // _OPENCOG_CHIST_H
