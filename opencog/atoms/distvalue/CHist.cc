@@ -214,7 +214,7 @@ uint CHist<c_typ>::cmp(double *p1, double *p2) const
 	uint res = 0;
 	for (uint i = 0; i < _dimensions; i++)
 	{
-		if (*(p1+i) <= *(p2+i))
+		if (*(p1+i) < *(p2+i))
 			res = res | (1 << i);
 	}
 	//printf("Cmp p1,p2,res: %f,%f,%i \n",*p1,*p2,res);
@@ -335,8 +335,7 @@ void CHist<c_typ>::rotate_up(uint idx)
 			continue;
 		if (i == cdir_opp)
 			shift_down(child(p,i),cdir_opp);
-		else
-			move_to(child(p,i),child(child(p,cdir_opp),i));
+		//move_to(child(p,i),child(child(p,cdir_opp),i));
 	}
 	//Move down the parrent
 	nodes[child(p,cdir_opp )] = nodes[p];
@@ -726,14 +725,17 @@ template <typename c_typ>
 c_typ CHist<c_typ>::get(double * pos) const
 {
 	uint idx = 0;
-	while (idx < _size || nodes[idx].pos == nullptr)
+	while (idx < _size && nodes[idx].pos != nullptr)
 	{
 		if (eq(nodes[idx].pos,pos))
 			return nodes[idx].value;
 		uint dir = cmp(nodes[idx].pos,pos);
 		idx = child(idx,dir);
 	}
-	throw RuntimeException(TRACE_INFO,"This Position is not an element of this Histogram.");
+	std::stringstream ss;
+	ss << "This Position is not an element of this Histogram. pos:"
+	   << *pos << "," << *(pos+1);
+	throw RuntimeException(TRACE_INFO,ss.str().c_str());
 }
 
 template <typename c_typ>
@@ -1048,19 +1050,23 @@ bool CHist<c_typ>::operator==(const CHist<c_typ> &other) const
 	    _count_elems != other._count_elems || _total_count != other._total_count)
 		return false;
 
-	//std::cout << "Check1\n";
+	std::cout << "Check1\n";
 	//std::cout << *this
-//			  << other;
+	//			<< other;
 
-	for (uint i = 0; i < _subs; i++)
-		if (!eq(limits[i],other.limits[i]))
-			return false;
+	//Limits Depend on the Order in which elements where inserted
+	//Which is why we should not check this for equality
+	//for (uint i = 0; i < _subs; i++)
+    //	if (!eq(limits[i],other.limits[i]))
+	//		return false;
 	//std::cout << "Check2\n";
 
-	for (uint i = 0; i < _size; i++)
-		if (!eq(nodes[i],other.nodes[i]))
+	//Ordre of Nodes depends on order of insertion
+	//So check for existance with get
+	for (auto it = begin(); it != end(); it++)
+		if (it->value != other.get(it->pos))
 			return false;
-	//std::cout << "Check3\n";
+	std::cout << "Check3\n";
 
 	return true;
 }

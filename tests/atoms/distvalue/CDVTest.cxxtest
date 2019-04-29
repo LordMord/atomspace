@@ -21,6 +21,7 @@
  */
 
 #include <math.h>
+#include <iomanip>
 
 #include <opencog/atoms/distvalue/DistributionalValue.h>
 #include <opencog/atoms/distvalue/ConditionalDV.h>
@@ -113,23 +114,32 @@ public:
 	void testGetJoint()
 	{
         std::cout << "\nTest1\n";
-		std::cout << cdv->to_string() << std::endl << std::flush;
-		std::cout << dv->to_string() << std::endl << std::flush;
+		std::cout << cdv->value() << std::endl << std::flush;
+		std::cout << dv->value() << std::endl << std::flush;
 		DistributionalValuePtr dvres = cdv->get_joint_probability(dv);
         std::cout << "\nTest2\n";
-		std::cout << dvres->to_string() << std::endl << std::flush;
+		std::cout << std::setprecision(16);
+		std::cout << dvres->value();
+		//std::cout << dvres->to_string() << std::endl << std::flush;
         CHist<double> dvc = CHist<double>(85,2);
-		dvc.insert(DVec{keys[6][0],keys[3][0]},10.1695);
 		dvc.insert(DVec{keys[5][0],keys[0][0]},2.5);
+		//std::cout << dvc;
 		dvc.insert(DVec{keys[5][0],keys[1][0]},2.5);
+		//std::cout << dvc;
 		dvc.insert(DVec{keys[5][0],keys[2][0]},2.5);
+		//std::cout << dvc;
 		dvc.insert(DVec{keys[5][0],keys[3][0]},2.5);
+		//std::cout << dvc;
 		dvc.insert(DVec{keys[6][0],keys[2][0]},10.1695);
+		//std::cout << dvc;
+		dvc.insert(DVec{keys[6][0],keys[3][0]},10.1695);
+		std::cout << dvc;
 
 
 		DistributionalValuePtr dvexp = DistributionalValue::createDV(dvc);
-		std::cout << dvexp->to_string() << std::endl << std::flush;
+		//std::cout << dvexp->value();
+		//std::cout << dvexp->to_string() << std::endl << std::flush;
 
-		TS_ASSERT_EQUALS(*dvres,*dvexp);
+		TS_ASSERT_EQUALS(dvres->value(),dvc);
 	}
 };
