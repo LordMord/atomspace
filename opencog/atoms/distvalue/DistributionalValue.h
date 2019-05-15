@@ -31,7 +31,8 @@
 #include <limits>
 
 #include <opencog/atoms/value/Value.h>
-#include <opencog/atoms/distvalue/CHist.h>
+#include <opencog/atoms/distvalue/CTHist.h>
+#include <opencog/util/Counter.h>
 
 /** \addtogroup grp_atomspace
  *	@{
@@ -59,23 +60,23 @@ class ConditionalDV;
 class DistributionalValue
 	: public Value
 {
-	CHist<double> _value;
+	CTHist<double> _value;
 	friend ConditionalDV;
 
 public:
 	static count_t DEFAULT_K;
 
 	DistributionalValue();
-	DistributionalValue(const CHist<double>&);
+	DistributionalValue(const CTHist<double>&);
 	DistributionalValue(double, double);
 
-	const CHist<double>& value() const { return _value; }
+	const CTHist<double>& value() const { return _value; }
 
 	static DistributionalValuePtr TRUE_TV();
 	static DistributionalValuePtr FALSE_TV();
 	static DistributionalValuePtr DEFAULT_TV();
 	static DistributionalValuePtr createDV(double, double);
-	static DistributionalValuePtr createDV(const CHist<double>&);
+	static DistributionalValuePtr createDV(const CTHist<double>&);
 
 	//Utility functions to convert between confidence and count
 	//Should this be moved elsewhere???
@@ -84,9 +85,9 @@ public:
 
 	bool is_uniform() const;
 
-	std::vector<double> bin_modes() const;
-	std::vector<double> bin_means() const;
-	std::vector<double> bin_vars() const;
+	std::map<DVec,double> bin_modes() const;
+	std::map<DVec,double> bin_means() const;
+	std::map<DVec,double> bin_vars() const;
 
 	double get_mode_for(double) const;
 	double get_mean_for(double) const;
@@ -94,12 +95,13 @@ public:
 
 	void add_evidence(const DVec&);
 	DistributionalValuePtr merge(DistributionalValuePtr) const;
+	DistributionalValuePtr remap(const DVecSeq&) const;
+	DistributionalValuePtr mirrorLinf() const;
 
 	double total_count() const;
 	double get_confidence() const;
 
 	double get_mean(const DVec&) const;
-	double get_contained_mean(const DVec&) const;
 	double get_mode(const DVec&) const;
 	double get_var(const DVec&) const;
 

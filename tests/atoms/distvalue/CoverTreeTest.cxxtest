@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 SingularityNet
+ * Copyright (C) 2018 SingularityNet
  * All Rights Reserved
  *
  * Written by Roman Treutlein <roman@singularitynet.io>
@@ -21,36 +21,42 @@
  */
 
 #include <math.h>
+#include <iomanip>
 
-#include <opencog/atoms/distvalue/Histogram.h>
+#include <opencog/atoms/distvalue/CoverTree.h>
 #include <opencog/util/Logger.h>
 #include <opencog/util/exceptions.h>
 
 using namespace opencog;
 
-class HistogramTest :  public CxxTest::TestSuite
+class CoverTreeTest :  public CxxTest::TestSuite
 {
 public:
-	HistogramTest() {}
+	CoverTreeTest() {}
 
 	void setUp() {}
 
 	void tearDown() {}
 
-	void testMerge()
+	void testNearestNeighbor()
 	{
-		NBin bin1{Bin{0.0,0.4},Bin{0.2,0.6}};
-		NBin bin2{Bin{0.6,1.0},Bin{0.6,0.9}};
-		NBin bin3{Bin{0.25,0.75},Bin{0.7,0.8}};
+		CoverTree<double> ct = CoverTree<double>(1);
+		ct.insert(DVec{0.1},1);
+		ct.insert(DVec{0.2},1);
+		ct.insert(DVec{0.3},1);
+		ct.insert(DVec{0.4},1);
+		ct.insert(DVec{0.5},1);
 
-		Histogram<double> hist1;
-		hist1[bin1] = 10;
-		hist1[bin2] = 10;
-		Histogram<double> hist2;
-		hist2[bin3] = 10;
+		const CoverTreeNode<double> * res1 = ct.findNearestNeighbor(DVec{0.41});
+		const CoverTreeNode<double> * res2 = ct.findNearestNeighbor(DVec{0.39});
+		const CoverTreeNode<double> * res3 = ct.findNearestNeighbor(DVec{0.25});
 
-		Histogram<double> merged = hist1.merge(hist2);
-
-		std::cout << merged.to_string("");
+		//std::cout << res1->pos << std::endl;
+		//std::cout << res2->pos << std::endl;
+		//std::cout << res3->pos << std::endl;
+		TS_ASSERT_EQUALS(res1->pos,DVec{0.4});
+		TS_ASSERT_EQUALS(res2->pos,DVec{0.4});
+		TS_ASSERT_EQUALS(res3->pos,DVec{0.3});
 	}
+
 };

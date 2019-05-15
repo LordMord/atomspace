@@ -1,12 +1,11 @@
 ADD_LIBRARY (distvalue
+	Utils.cc
+	CoverTree.cc
+	CTHist.cc
 	DistributionalValue.cc
 	ConditionalDV.cc
 	DVFormulas.cc
-	#DistributionalValueSCM.cc
-	#Histogram.cc
-	#Interval.cc
-	CHist.cc
-	CHistIter.cc
+	DistributionalValueSCM.cc
 )
 
 # Without this, parallel make will race and crap up the generated files.
@@ -22,10 +21,12 @@ INSTALL (TARGETS distvalue EXPORT AtomSpaceTargets
 )
 
 INSTALL (FILES
+	Utils.h
+	CoverTree.h
+	CTHist.h
 	DistributionalValue.h
 	ConditionalDV.h
 	DVFormulas.h
 	DistributionalValueSCM.h
-	Histogram.h
 	DESTINATION "include/opencog/atoms/distvalue"
 )

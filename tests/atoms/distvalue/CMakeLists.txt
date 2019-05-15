@@ -6,9 +6,8 @@ LINK_LIBRARIES(
 	atomcore
 )
 
-ADD_CXXTEST(CHistTest)
-ADD_CXXTEST(IntervalTest)
-ADD_CXXTEST(HistogramTest)
+ADD_CXXTEST(CoverTreeTest)
+ADD_CXXTEST(CTHistTest)
 ADD_CXXTEST(DVTest)
 ADD_CXXTEST(CDVTest)
 ADD_CXXTEST(DVFormulaTest)

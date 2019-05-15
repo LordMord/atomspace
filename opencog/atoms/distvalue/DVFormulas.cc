@@ -34,42 +34,16 @@
 
 using namespace opencog;
 
-#if 0
-
-//Given a key return the min of all it's Intervals
-DVec DVFormulas::get_key_min(const NdimBin &k)
-{
-	std::vector<double> res;
-	for (auto interval : k)
-		res.push_back(interval[0]);
-	return res;
-}
-
-//Given a key return the max of all it's Intervals
-DVec DVFormulas::get_key_max(const NdimBin &k)
-{
-	std::vector<double> res;
-	for (auto interval : k)
-		if (interval.size() == 1)
-			res.push_back(interval[0]);
-		else
-			res.push_back(interval[1]);
-
-	return res;
-}
-
-#endif
-
 //(A,B,C) + (B,C) => (B,C) -> A
 //idx is the position of consequent in the joint Distribution
 //(A,B,C) A is at idx 0
 //Result has the same total_count as dv2
 ConditionalDVPtr DVFormulas::joint_to_cdv(DistributionalValuePtr dv1,
                                           DistributionalValuePtr dv2,
-                                          uint idx)
+                                          int idx)
 {
-	size_t dv1dims = dv1->value().dimensions();
-	size_t dv2dims = dv2->value().dimensions();
+	size_t dv1dims = dv1->value().dims();
+	size_t dv2dims = dv2->value().dims();
 
 	size_t dv1size = dv1->value().size();
 	size_t dv2size = dv2->value().size();
@@ -81,57 +55,60 @@ ConditionalDVPtr DVFormulas::joint_to_cdv(DistributionalValuePtr dv1,
 	if (dv1dims - 1 != dv2dims)
 		throw RuntimeException(TRACE_INFO,"The Divisor DV has to have exaclty 1 less dimensions then then dividend. This is not the case.");
 
+
+	DVecSeq keys = dv1->value().get_posvec();
+	for (unsigned int i = 0; i < keys.size(); i++)
+	{
+		keys[i].erase(keys[i].begin() + idx);
+	}
+	std::sort(keys.begin(),keys.end());
+	keys.erase(std::unique(keys.begin(),keys.end()),keys.end());
+	DistributionalValuePtr dv2remap = dv2->remap(keys);
+
 	for (auto elem : dv1->value())
 	{
-		auto size = sizeof(double);
-		double * hs = (double*)malloc(size * dv2dims);
+		DVec hs = elem.pos;
 
-		//get the consequent
-		double * h = (double*)malloc(size);
-		memcpy(h,elem.pos+idx,size);
-		//remove it from the condition
-		int j = 0;
-		for (uint i = 0; i < dv2dims; i++)
-		{
-			if (i != idx)
-			{
-				memcpy(hs+j,elem.pos+i,size);
-				j++;
-			}
-		}
+		DVec h = DVec{hs[idx]};
+		hs.erase(hs.begin() + idx);
 
-		DVec hsv = res.arrayToVec(hs);
-
-		if (dv2->get_contained_mean(hsv) != 0)
+		std::cout << ::to_string(hs) << " hs,h " << ::to_string(h) << std::endl;
+		//std::cout << "dv2m: " << dv2->get_contained_mean(hs) << std::endl;
+		//Counter<DVec,double> means = dv2->get_contained_means(hs);
+		if (dv2remap->get_mean(hs) != 0)
 		{
 			double count = dv1->get_mean_for(elem.value) /
-							dv2->get_contained_mean(hsv) *
-							dv2->total_count();
+							dv2remap->get_mean(hs) *
+							dv2remap->total_count();
 
-			CHist<double> val = CHist<double>(dv2size,1);
+			//std::cout << "dv1m: " << dv1->get_mean_for(elem.value) << std::endl;
+			//std::cout << "dv2m: " << dv2->get_contained_mean(hs) << std::endl;
+			//std::cout << "dv2t: " << dv2->total_count() << std::endl;
+
+			CTHist<double> val = CTHist<double>(dv2size,1);
 			val.insert(h,count);
 			res.insert(hs,val);
+			//res.print();
+			//std::cout << std::endl;
 		}
-
 	}
 	return ConditionalDV::createCDV(res);
 }
-
-#if 0
 
 //(A,B,C) => (A,C)
 //idx is the position of the Element to sum out of the joint-dv
 DistributionalValuePtr DVFormulas::sum_joint(DistributionalValuePtr dv, int pos)
 {
-	DVCounter res;
+	CTHist<double> res = CTHist<double>(dv->value().size(),dv->value().dims()-1);
 	for (auto elem : dv->value())
 	{
-		NdimBin key = elem.first;
+		DVec key = elem.pos;
 		key.erase(key.begin() + pos);
-		res[key] += elem.second;
+		res.insert(key,elem.value);
 	}
 	return DistributionalValue::createDV(res);
 }
+
 
 #define EPSILON 1e-16
 
@@ -140,12 +117,38 @@ DistributionalValuePtr
 DVFormulas::conjunction(DistributionalValuePtr dv1,
                         DistributionalValuePtr dv2)
 {
-	DVCounter res;
+	CTHist<double> res = CTHist<double>(dv1->value().size() + dv2->value().size(),
+										dv1->value().dims());
 	double count = std::min(dv1->total_count(),dv2->total_count());
 
+	const std::vector<CoverTreeNode<double>> & nodes1 = dv1->value().nodes();
+	const std::vector<CoverTreeNode<double>> & nodes2 = dv2->value().nodes();
+
+	std::vector<int> idxs1(nodes1.size());
+	std::size_t c1(0);
+    std::generate(std::begin(idxs1), std::end(idxs1), [&]{ return c1++; });
+
+	std::vector<int> idxs2(nodes2.size());
+	std::size_t c2(0);
+    std::generate(std::begin(idxs2), std::end(idxs2), [&]{ return c2++; });
+
+    auto cmp1 = [&](int i1,int i2) -> bool
+				{
+				   return nodes1[i1].pos < nodes1[i2].pos;
+				};
+    auto cmp2 = [&](int i1,int i2) -> bool
+				{
+				   return nodes2[i1].pos < nodes2[i2].pos;
+				};
+
+	std::sort(idxs1.begin(),idxs1.end(),cmp1);
+	std::sort(idxs2.begin(),idxs2.end(),cmp2);
+
 	//We start at the begining of the map with Keys of the lowest Value
-	auto it1 = dv1->value().begin();
-	auto it2 = dv2->value().begin();
+	auto it1 = idxs1.begin();
+	auto it2 = idxs2.begin();
+	const CoverTreeNode<double> * n1 = &nodes1[*it1];
+	const CoverTreeNode<double> * n2 = &nodes2[*it2];
 
 	//Weighting factor representing how much of a given DV has be used already
 	double m1 = 1;
@@ -153,48 +156,71 @@ DVFormulas::conjunction(DistributionalValuePtr dv1,
 
 	while (not is_within(m1,0.0,EPSILON) && not is_within(m2,0.0,EPSILON))
 	{
-		DVec v1 = get_key_min(it1->first);
-		DVec v2 = get_key_min(it2->first);
 		//We check which key represents a lower Truthness/Value
 		//This is a fuzzy conjunction so we want to take the min of that
-		if (v1 < v2)
+		if (n1->pos < n2->pos)
 		{
 			//We get the mean for that Key
-			double mean = dv1->get_mean_for(it1->second);
+			double mean = dv1->get_mean_for(n1->value);
 			//Multiply by the count to de-normalize that
 			//Weighted by how much of the other DV we already used
-			res[it1->first] += count * mean * m2;
+			res.insert(n1->pos, count * mean * m2);
 			//Update m1 to refelect that we have used "mean" of this DV
 			m1 -= mean;
 			it1++;
+			n1 = &nodes1[*it1];
 		}
 		else
 		{
 			//Same as above just flipped dv1/it1/m1 and dv2/it2/m2
-			double mean = dv2->get_mean_for(it2->second);
-			res[it2->first] += count * mean * m1;
+			double mean = dv2->get_mean_for(n2->value);
+			res.insert(n2->pos, count * mean * m1);
 			m2 -= mean;
 			it2++;
+			n2 = &nodes2[*it2];
 		}
 	}
 
 	return DistributionalValue::createDV(res);
 }
 
-//Create a disjuction from 2 DVs
+//Create a disjunction from 2 DVs
 DistributionalValuePtr
 DVFormulas::disjunction(DistributionalValuePtr dv1,
                         DistributionalValuePtr dv2)
 {
-	DVCounter res;
+	CTHist<double> res = CTHist<double>(dv1->value().size() + dv2->value().size(),
+										dv1->value().dims());
 	double count = std::min(dv1->total_count(),dv2->total_count());
 
-	//We start at the end of the map with Keys of the highest Value
-	auto it1 = dv1->value().end();
-	auto it2 = dv2->value().end();
+	const std::vector<CoverTreeNode<double>> & nodes1 = dv1->value().nodes();
+	const std::vector<CoverTreeNode<double>> & nodes2 = dv2->value().nodes();
 
-	it1--;
-	it2--;
+	std::vector<int> idxs1(nodes1.size());
+	std::size_t c1(0);
+    std::generate(std::begin(idxs1), std::end(idxs1), [&]{ return c1++; });
+
+	std::vector<int> idxs2(nodes2.size());
+	std::size_t c2(0);
+    std::generate(std::begin(idxs2), std::end(idxs2), [&]{ return c2++; });
+
+    auto cmp1 = [&](int i1,int i2) -> bool
+				{
+				   return nodes1[i1].pos < nodes1[i2].pos;
+				};
+    auto cmp2 = [&](int i1,int i2) -> bool
+				{
+				   return nodes2[i1].pos < nodes2[i2].pos;
+				};
+
+	std::sort(idxs1.begin(),idxs1.end(),cmp1);
+	std::sort(idxs2.begin(),idxs2.end(),cmp2);
+
+	//We start at the begining of the map with Keys of the lowest Value
+	auto it1 = idxs1.end() - 1;
+	auto it2 = idxs2.end() - 1;
+	const CoverTreeNode<double> * n1 = &nodes1[*it1];
+	const CoverTreeNode<double> * n2 = &nodes2[*it2];
 
 	//Weighting factor representing how much of a given DV has be used already
 	double m1 = 1;
@@ -202,35 +228,35 @@ DVFormulas::disjunction(DistributionalValuePtr dv1,
 
 	while (not is_within(m1,0.0,EPSILON) && not is_within(m2,0.0,EPSILON))
 	{
-		if (m1 < 0 || m2 < 0)
-			throw RuntimeException(TRACE_INFO,"This should not happen.");
-		DVec v1 = get_key_max(it1->first);
-		DVec v2 = get_key_max(it2->first);
-		//We check which key represents a higher Truthness/Value
-		//This is a fuzzy disjunction so we want to take the max of that
-		if (v1 > v2)
+		//We check which key represents a lower Truthness/Value
+		//This is a fuzzy conjunction so we want to take the min of that
+		if (n1->pos > n2->pos)
 		{
-			double mean = dv1->get_mean_for(it1->second);
+			//We get the mean for that Key
+			double mean = dv1->get_mean_for(n1->value);
 			//Multiply by the count to de-normalize that
 			//Weighted by how much of the other DV we already used
-			res[it1->first] += count * mean * m2;
+			res.insert(n1->pos, count * mean * m2);
 			//Update m1 to refelect that we have used "mean" of this DV
 			m1 -= mean;
 			it1--;
+			n1 = &nodes1[*it1];
 		}
 		else
 		{
 			//Same as above just flipped dv1/it1/m1 and dv2/it2/m2
-			double mean = dv2->get_mean_for(it2->second);
-			res[it2->first] += count * mean * m1;
+			double mean = dv2->get_mean_for(n2->value);
+			res.insert(n2->pos, count * mean * m1);
 			m2 -= mean;
 			it2--;
+			n2 = &nodes2[*it2];
 		}
 	}
 
 	return DistributionalValue::createDV(res);
 }
 
+#if 0
 //A -> (B || C) + A -> B => A -> C
 ConditionalDVPtr
 DVFormulas::consequent_disjunction_elemination(ConditionalDVPtr cdv1,

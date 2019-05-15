@@ -1,187 +1,90 @@
-#include <algorithm>
+/*
+ * opencog/atoms/distvalue/Utils.h
+ *
+ * Copyright (C) 2018 SingularityNet
+ * All Rights Reserved
+ *
+ * Written by Roman Treutlein
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License v3 as
+ * published by the Free Software Foundation and including the exceptions
+ * at http://opencog.org/wiki/Licenses
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program; if not, write to:
+ * Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ */
 
-#include <opencog/util/exceptions.h>
 
+#ifndef _OPENCOG_CTUTILS_H
+#define _OPENCOG_CTUTILS_H
+
+#include <vector>
+
+namespace opencog
+{
+
+/*
+ * Utility functions for working with std::vector<double> "DVec" and
+ * std::vector<std::vector<double>> "DVecSeq"
+ */
 
 typedef std::vector<double> DVec;
+typedef std::vector<DVec> DVecSeq;
 
-struct Interval
-{
-	double lower;
-	double upper;
-};
+//Calculate the distance between 2 points
+double dist(DVec p1, DVec p2);
 
-typedef Interval Bin;
-//A N-dimensional Bin
-typedef std::vector<Bin> NBin;
-//A Sequence of N-dimensional Bins
-typedef std::vector<NBin> NBinSeq;
-
-#define EMPTY_INTERVAL Interval{1,-1}
-
-bool is_empty(const Interval& i)
-{
-	return i.lower > i.upper;
-}
-
-double median(const Interval& i)
-{
-	return (i.lower + i.upper) / 2;
-}
-
-DVec median(const NBin& i)
-{
-	DVec res;
-	transform(i.begin(),i.end(),std::back_inserter(res),
-	          (double (*)(const Interval&))median);
-	return res;
-}
-
-double lower(const Interval& i)
-{
-	return i.lower;
-}
-
-DVec lower(const NBin& i)
-{
-	DVec res;
-	transform(i.begin(),i.end(),std::back_inserter(res),
-	          (double (*)(const Interval&))lower);
-	return res;
-}
-
-double upper(const Interval& i)
-{
-	return i.upper;
-}
-
-DVec upper(const NBin& i)
-{
-	DVec res;
-	transform(i.begin(),i.end(),std::back_inserter(res),
-	          (double (*)(const Interval&))upper);
-	return res;
-}
-
-double width(const Interval& i)
-{
-	if (is_empty(i)) throw RuntimeException(TRACE_INFO,
-											"Empty interval has no width.");
-	return (i.upper - i.lower);
-}
-
-DVec width(const NBin& i)
-{
-	DVec res;
-	transform(i.begin(),i.end(),std::back_inserter(res),
-	          (double (*)(const Interval&))width);
-	return res;
-}
-
-//If one of the argumenst is empty the result should also be emtpy
-Interval intersect(const Interval& i1,const Interval& i2)
-{
-	double lower = std::max(i1.lower,i2.lower);
-	double upper = std::min(i1.upper,i2.upper);
-	return Interval{lower,upper};
-}
-
-NBin intersect(const NBin& b1,const NBin& b2)
-{
-	NBin res;
-	transform(b1.begin(),b1.end(),b2.begin(),std::back_inserter(res),
-	          (Interval (*)(const Interval&,const Interval&))intersect);
-	return res;
-}
-
-NBin createNBin(const DVec& v1,const DVec& v2)
-{
-	size_t size = v1.size();
-	if (size != v2.size())
-		throw RuntimeException(TRACE_INFO,"Vectors must be same lenght.");
-	NBin res;
-	res.resever(size);
-	for (size_t i; i < size;i++)
-		res.push_back(Interval{v1[i],v2[i]});
-	return res;
-}
+DVec operator+(const DVec& a, const DVec& b);
 
 
-bool operator<(const Interval& i1, const Interval& i2)
-{
-	if (is_empty(i1)) return true;
-	if (is_empty(i2)) return false;
-	if (i1.upper <= i2.lower) return true;
-	if (i2.upper <= i1.lower) return false;
-	throw RuntimeException(TRACE_INFO,
-	                       "Comparison not defined for overlapping intervals!");
-}
+DVec operator-(const DVec& a, const DVec& b);
 
-bool operator>(const Interval& i1, const Interval& i2)
-{
-	if (is_empty(i1)) return false;
-	if (is_empty(i2)) return true;
-	if (i1.upper <= i2.lower) return false;
-	if (i2.upper <= i1.lower) return true;
-	throw RuntimeException(TRACE_INFO,
-	                       "Comparison not defined for overlapping intervals!");
-}
 
-bool operator==(const Interval& i1, const Interval& i2)
-{
-	if (is_empty(i1) && is_empty(i2)) return true;
-	//Check if either of them is empty can't be both if we reach this line.
-	if (is_empty(i1) || is_empty(i2)) return false;
-	if (i1.lower == i2.lower && i1.upper == i2.upper) return true;
-	return false;
-}
+DVec operator/(const DVec& a, const DVec& b);
 
-DVec operator+(const DVec& a, const DVec& b)
-{
-    DVec result;
 
-    const std::size_t n = std::min(a.size(), b.size()) ;
-    std::transform(std::begin(a), std::begin(a)+n, std::begin(b),
-                   std::back_inserter(result), std::plus<double>{});
-    return result;
-}
+DVec operator*(const DVec& a, const double& b);
 
-DVec operator-(const DVec& a, const DVec& b)
-{
-    DVec result;
+DVec operator/(const DVec& a, const double& b);
 
-    const std::size_t n = std::min(a.size(), b.size()) ;
-    std::transform(std::begin(a), std::begin(a)+n, std::begin(b),
-                   std::back_inserter(result), std::minus<double>{});
-    return result;
-}
+bool operator<(const DVec& a, const DVec& b);
+bool operator>(const DVec& a, const DVec& b);
 
-DVec operator/(const DVec& a, const DVec& b)
-{
-    DVec result;
+bool operator==(const DVec & a, const DVec & b);
 
-    const std::size_t n = std::min(a.size(), b.size()) ;
-    std::transform(std::begin(a), std::begin(a)+n, std::begin(b),
-                   std::back_inserter(result), std::divides<double>{});
-    return result;
-}
+//Sum over all elements in the vector
+double sum(const DVec& a);
 
-DVec operator*(const DVec& a, const double& b)
-{
-    DVec result;
+//Utility for printing
+std::string to_string(const DVec& a);
+std::string to_string(const DVecSeq& a);
 
-	for (double elem : a)
-		result.push_back(elem * b);
+std::ostream& operator<<(std::ostream& os, const DVec &t);
+std::ostream& operator<<(std::ostream& os, const DVecSeq &t);
 
-    return result;
-}
+//Calculate the dot product
+double dot(const DVec& a, const DVec& b);
 
-DVec operator/(const DVec& a, const double& b)
-{
-    DVec result;
 
-	for (double elem : a)
-		result.push_back(elem / b);
+//Calculate the mag product
+double mag(const DVec& a);
 
-    return result;
-}
+//Calculate cos(angle) between vecotr a and b
+double angle(const DVec& a, const DVec& b);
+
+//Given a point p and a Cricle with center c and radius r
+//calculate cos(angle) betwen the vector from p to c
+//                                  and  from p to a tangent point on the Cricle
+double angleTangent(DVec p, DVec c, double r);
+
+
+} // namespace opencog
+#endif

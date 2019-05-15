@@ -1,5 +1,5 @@
 /*
- * opencog/truthvalue/ConditionalGDTV.h
+ * opencog/atoms/distvalue/ConditionalDV.h
  *
  * Copyright (C) 2018 SingularityNet
  * All Rights Reserved
@@ -47,7 +47,7 @@ typedef std::shared_ptr<const DistributionalValue> DistributionalValuePtr;
 class ConditionalDV;
 typedef std::shared_ptr<const ConditionalDV> ConditionalDVPtr;
 
-typedef CHist<CHist<double>> CDVrep;
+typedef CTHist<CTHist<double>> CDVrep;
 
 /*
  * This class is used for conditional distributions. It's represented by a
@@ -81,14 +81,14 @@ public:
 	DVecSeq get_conditions() const;
 	std::vector<DistributionalValuePtr> get_unconditionals() const;
 
-	CHist<double> get_unconditionalP(const DVec&) const;
-	DistributionalValuePtr get_unconditional(const DVec&) const;
+	CTHist<double> get_unconditionalP(const DVec&) const;
+	ConditionalDVPtr remap(const DVecSeq&) const;
 	DistributionalValuePtr get_unconditional(DistributionalValuePtr) const;
 
 	DistributionalValuePtr get_joint_probability(DistributionalValuePtr) const;
 
 	//Consequent-Disjuction-Elimination
-	ConditionalDVPtr CDE(ConditionalDVPtr) const;
+	//ConditionalDVPtr CDE(ConditionalDVPtr) const;
 
 	double total_count() const;
 	double avg_count() const;

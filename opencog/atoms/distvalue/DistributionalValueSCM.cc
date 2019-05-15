@@ -67,55 +67,45 @@ void DistributionalValueSCM::init(void)
 	define_scheme_primitive("cog-cdv-get-joint",
 	                        &DistributionalValueSCM::ss_cdv_get_joint,
 	                        this,"distvalue");
-	define_scheme_primitive("cog-cdv-merge",
-	                        &DistributionalValueSCM::ss_cdv_merge,
-	                        this,"distvalue");
-	define_scheme_primitive("cog-cdv-cde",
-	                        &DistributionalValueSCM::ss_cdv_cde,
-	                        this,"distvalue");
+	//define_scheme_primitive("cog-cdv-merge",
+	//                        &DistributionalValueSCM::ss_cdv_merge,
+	//                        this,"distvalue");
+	//define_scheme_primitive("cog-cdv-cde",
+	//                        &DistributionalValueSCM::ss_cdv_cde,
+	//                        this,"distvalue");
 }
 
 //Utility Functions
 
-Interval
-DistributionalValueSCM::verify_interval(SCM svalue_list, const char * subrname, int pos)
+DVec
+DistributionalValueSCM::verify_DVec(SCM svalue_list, const char * subrname, int pos)
 {
 	// Verify that second arg is an actual list.
 	// Null lists are not valid intervals.
 	if (!scm_is_pair(svalue_list))
 		scm_wrong_type_arg_msg(subrname, pos, svalue_list, "a non-null list of float-pt values");
-	return SchemeSmob::scm_to_float_list(svalue_list);
+	return scm_to_DVec(svalue_list);
 }
 
-NdimBin
-DistributionalValueSCM::verify_NdimBin(SCM svalue_list, const char * subrname, int pos)
+DVecSeq
+DistributionalValueSCM::verify_DVecSeq(SCM svalue_list, const char * subrname, int pos)
 {
 	// Verify that second arg is an actual list.
 	// Null lists are not valid intervals.
 	if (!scm_is_pair(svalue_list))
 		scm_wrong_type_arg_msg(subrname, pos, svalue_list, "a non-null list of float-pt values");
-	return scm_to_NdimBin(svalue_list);
+	return scm_to_DVecSeq(svalue_list);
 }
 
-NdimBinSeq
-DistributionalValueSCM::verify_NdimBinSeq(SCM svalue_list, const char * subrname, int pos)
+DVec DistributionalValueSCM::scm_to_DVec(SCM svalue_list)
 {
-	// Verify that second arg is an actual list.
-	// Null lists are not valid intervals.
-	if (!scm_is_pair(svalue_list))
-		scm_wrong_type_arg_msg(subrname, pos, svalue_list, "a non-null list of float-pt values");
-	return scm_to_NdimBinSeq(svalue_list);
-}
-
-NdimBin DistributionalValueSCM::scm_to_NdimBin(SCM svalue_list)
-{
-	NdimBin valist;
+	DVec valist;
 	SCM sl = svalue_list;
 	while (scm_is_pair(sl)) {
 		SCM svalue = SCM_CAR(sl);
 
 		if (not scm_is_null(svalue)) {
-			std::vector<double> v = verify_interval(svalue,"scm_to_NdimBin",0);
+			double v = scm_to_double(svalue);
 			valist.emplace_back(v);
 		}
 		sl = SCM_CDR(sl);
@@ -123,15 +113,15 @@ NdimBin DistributionalValueSCM::scm_to_NdimBin(SCM svalue_list)
 	return valist;
 }
 
-NdimBinSeq DistributionalValueSCM::scm_to_NdimBinSeq(SCM svalue_list)
+DVecSeq DistributionalValueSCM::scm_to_DVecSeq(SCM svalue_list)
 {
-	NdimBinSeq valist;
+	DVecSeq valist;
 	SCM sl = svalue_list;
 	while (scm_is_pair(sl)) {
 		SCM svalue = SCM_CAR(sl);
 
 		if (not scm_is_null(svalue)) {
-			NdimBin v = verify_NdimBin(svalue,"scm_to_NdimBinSeq",0);
+			DVec v = verify_DVec(svalue,"scm_to_DVKeySeq",0);
 			valist.emplace_back(v);
 		}
 		sl = SCM_CDR(sl);
@@ -139,7 +129,7 @@ NdimBinSeq DistributionalValueSCM::scm_to_NdimBinSeq(SCM svalue_list)
 	return valist;
 }
 
-SCM DistributionalValueSCM::float_list_to_scm(const std::vector<double>& v)
+SCM DistributionalValueSCM::float_list_to_scm(const DVec& v)
 {
 	SCM res = SCM_UNDEFINED;
 	bool first = true;
@@ -157,31 +147,18 @@ SCM DistributionalValueSCM::float_list_to_scm(const std::vector<double>& v)
 	return res;
 }
 
-SCM DistributionalValueSCM::dvkey_to_scm(const NdimBin& v)
+SCM DistributionalValueSCM::dvec_to_scm(const DVec& v)
+{
+	return float_list_to_scm(v);
+}
+
+SCM DistributionalValueSCM::dvecseq_to_scm(const DVecSeq& v)
 {
 	SCM res = SCM_UNDEFINED;
 	bool first = true;
 	for (auto d : v)
 	{
 		SCM sh = float_list_to_scm(d);
-		if (first) {
-			first = false;
-			res = scm_list_1(sh);
-		}
-		else {
-			res = scm_cons(sh,res);
-		}
-	}
-	return res;
-}
-
-SCM DistributionalValueSCM::dvkeyseq_to_scm(const NdimBinSeq& v)
-{
-	SCM res = SCM_UNDEFINED;
-	bool first = true;
-	for (auto d : v)
-	{
-		SCM sh = dvkey_to_scm(d);
 		if (first) {
 			first = false;
 			res = scm_list_1(sh);
@@ -240,18 +217,19 @@ SCM DistributionalValueSCM::dvs_to_scm(const std::vector<DistributionalValuePtr>
  */
 SCM DistributionalValueSCM::ss_new_dv(SCM sks, SCM scs)
 {
-	NdimBinSeq ks = verify_NdimBinSeq(sks,"cog-new-dv",1);
+	DVecSeq ks = verify_DVecSeq(sks,"cog-new-dv",1);
 	std::vector<double> cs = SchemeSmob::scm_to_float_list(scs);
 	auto it1 = ks.begin();
 	auto it2 = cs.begin();
 	auto end1 = ks.end();
 	auto end2 = cs.end();
-	DVCounter dvc;
+	CTHist<double> hist = CTHist<double>(ks.size(),ks[0].size());
 	for (;(it1 != end1) && (it2 != end2); ++it1, ++it2)
 	{
-		dvc[*it1] = *it2;
+		hist.insert(*it1,*it2);
+		hist.print();
 	}
-	DistributionalValuePtr dv = DistributionalValue::createDV(dvc);
+	DistributionalValuePtr dv = DistributionalValue::createDV(hist);
 	return dv_to_scm(dv);
 }
 
@@ -354,11 +332,11 @@ SCM DistributionalValueSCM::ss_dv_disjunction(SCM sdv1,SCM sdv2)
 	return dv_to_scm(dvres);
 }
 
-SCM DistributionalValueSCM::ss_dv_get_fom(SCM sdv)
-{
-	DistributionalValuePtr dv = verify_dv(sdv,"cog-dv-get-fom",1);
-	return scm_from_double(dv->get_fstord_mean());
-}
+//SCM DistributionalValueSCM::ss_dv_get_fom(SCM sdv)
+//{
+//	DistributionalValuePtr dv = verify_dv(sdv,"cog-dv-get-fom",1);
+//	return scm_from_double(dv->get_fstord_mean());
+//}
 
 SCM DistributionalValueSCM::ss_dv_get_confidence(SCM sdv)
 {
@@ -369,7 +347,7 @@ SCM DistributionalValueSCM::ss_dv_get_confidence(SCM sdv)
 SCM DistributionalValueSCM::ss_dv_negate(SCM sdv)
 {
 	DistributionalValuePtr dv = verify_dv(sdv,"cog-dv-negate",1);
-	return dv_to_scm(dv->negate());
+	return dv_to_scm(dv->mirrorLinf());
 }
 
 SCM DistributionalValueSCM::ss_dv_is_empty(SCM sdv)
@@ -403,7 +381,7 @@ ConditionalDVPtr DistributionalValueSCM::verify_cdv(SCM sav, const char *subrnam
 
 SCM DistributionalValueSCM::ss_new_cdv(SCM sconds,SCM sdvs)
 {
-	NdimBinSeq conds = verify_NdimBinSeq(sconds,"cog-new-cdv",1);
+	DVecSeq conds = verify_DVecSeq(sconds,"cog-new-cdv",1);
 	std::vector<DistributionalValuePtr> dvs = verify_dv_list(sdvs,"cog-new-cdv",2);
 	ConditionalDVPtr cdv = ConditionalDV::createCDV(conds,dvs);
 	return cdv_to_scm(cdv);
@@ -412,8 +390,8 @@ SCM DistributionalValueSCM::ss_new_cdv(SCM sconds,SCM sdvs)
 SCM DistributionalValueSCM::ss_cdv_get_conditions(SCM scdv)
 {
 	ConditionalDVPtr cdv = verify_cdv(scdv,"cog-cdv-get-conditions",1);
-	NdimBinSeq conds = cdv->get_conditions();
-	return dvkeyseq_to_scm(conds);
+	DVecSeq conds = cdv->get_conditions();
+	return dvecseq_to_scm(conds);
 }
 
 SCM DistributionalValueSCM::ss_cdv_get_unconditonals(SCM scdv)
@@ -439,21 +417,21 @@ SCM DistributionalValueSCM::ss_cdv_get_joint(SCM scdv,SCM sdv)
 	return dv_to_scm(res);
 }
 
-SCM DistributionalValueSCM::ss_cdv_merge(SCM scdv1,SCM scdv2)
-{
-	ConditionalDVPtr cdv1 = verify_cdv(scdv1,"cog-cdv-merge",1);
-	ConditionalDVPtr cdv2 = verify_cdv(scdv2,"cog-cdv-merge",2);
-	ConditionalDVPtr res = cdv1->merge(cdv2);
-	return cdv_to_scm(res);
-}
+//SCM DistributionalValueSCM::ss_cdv_merge(SCM scdv1,SCM scdv2)
+//{
+//	ConditionalDVPtr cdv1 = verify_cdv(scdv1,"cog-cdv-merge",1);
+//	ConditionalDVPtr cdv2 = verify_cdv(scdv2,"cog-cdv-merge",2);
+//	ConditionalDVPtr res = cdv1->merge(cdv2);
+//	return cdv_to_scm(res);
+//}
 
-SCM DistributionalValueSCM::ss_cdv_cde(SCM scdv1,SCM scdv2)
-{
-	ConditionalDVPtr cdv1 = verify_cdv(scdv1,"cog-cdv-cde",1);
-	ConditionalDVPtr cdv2 = verify_cdv(scdv2,"cog-cdv-cde",2);
-	ConditionalDVPtr res = DVFormulas::consequent_disjunction_elemination(cdv1,cdv2);
-	return cdv_to_scm(res);
-}
+//SCM DistributionalValueSCM::ss_cdv_cde(SCM scdv1,SCM scdv2)
+//{
+//	ConditionalDVPtr cdv1 = verify_cdv(scdv1,"cog-cdv-cde",1);
+//	ConditionalDVPtr cdv2 = verify_cdv(scdv2,"cog-cdv-cde",2);
+//	ConditionalDVPtr res = DVFormulas::consequent_disjunction_elemination(cdv1,cdv2);
+//	return cdv_to_scm(res);
+//}
 
 void opencog_distvalue_init(void)
 {

@@ -1,5 +1,5 @@
 /*
- * opencog/truthvalue/ConditionalDV.cc
+ * opencog/atoms/distvalue/ConditionalDV.cc
  *
  * Copyright (C) 2018 SingularityNet
  * All Rights Reserved
@@ -33,19 +33,16 @@
 using namespace opencog;
 
 ConditionalDV::ConditionalDV()
-	: Value(CONDITIONAL_DISTRIBUTIONAL_VALUE)
-{
-}
+	: Value(CONDITIONAL_DISTRIBUTIONAL_VALUE) , _value(0,0)
+{}
 
 ConditionalDV::ConditionalDV(const CDVrep &rep)
-	: Value(CONDITIONAL_DISTRIBUTIONAL_VALUE)
-{
-	_value = rep;
-}
+	: Value(CONDITIONAL_DISTRIBUTIONAL_VALUE) , _value(rep)
+{}
 
 ConditionalDV::ConditionalDV(const DVecSeq &conds,
                              const std::vector<DistributionalValuePtr> &dvs)
-	: Value(CONDITIONAL_DISTRIBUTIONAL_VALUE)
+	: Value(CONDITIONAL_DISTRIBUTIONAL_VALUE) , _value(conds.size(),conds[0].size())
 {
 	auto it1 = conds.begin();
 	auto it2 = dvs.begin();
@@ -59,8 +56,6 @@ ConditionalDV::ConditionalDV(const DVecSeq &conds,
 
 	if (dvs.size() != conds.size())
 		throw RuntimeException(TRACE_INFO,"DVs and Conds must be the same lenght.");
-
-	_value = CHist<CHist<double>>(conds.size(),conds[0].size());
 
 	for (;(it1 != end1) && (it2 != end2); ++it1, ++it2)
 	{
@@ -87,7 +82,7 @@ ConditionalDVPtr ConditionalDV::createCDV(const DVecSeq &conds,
 //Get all the Conditions
 DVecSeq ConditionalDV::get_conditions() const
 {
-	return _value.get_posvvec();
+	return _value.get_posvec();
 }
 
 //Get all the DVs without the Conditions
@@ -101,10 +96,10 @@ std::vector<DistributionalValuePtr> ConditionalDV::get_unconditionals() const
 	return res;
 }
 
-DistributionalValuePtr ConditionalDV::get_unconditional(const DVec &k) const
+ConditionalDVPtr ConditionalDV::remap(const DVecSeq &k) const
 {
-	CHist<double> res = _value.get_avg(k);
-	return DistributionalValue::createDV(res);
+	CDVrep rep = _value.remap(k);
+	return createCDV(rep);
 }
 
 /*
@@ -115,13 +110,20 @@ DistributionalValuePtr ConditionalDV::get_unconditional(DistributionalValuePtr c
 {
 	auto size = std::pow(2,std::log2(_value.size()+1) +
 	                     std::log2(_value[0].value.size()+1)) - 1;
-	auto dims = _value[0].value.dimensions();
-	CHist<double> res = CHist<double>(size,dims);
+	auto dims = _value[0].value.dims();
+	CTHist<double> res = CTHist<double>(size,dims);
+	double sum = 0;
+
+	DVecSeq keys = condDist->_value.get_posvec();
+	CDVrep remaped = _value.remap(keys);
+
 	for (auto v : condDist->_value)
 	{
 		double val = condDist->get_mean_for(v.value);
-		res += _value.get_avg(v.pos) * val;
+		sum += total_count() / remaped.get(v.pos).total_count();
+		res += remaped.get(v.pos) * val;
 	}
+	res /= sum;
 	return std::make_shared<const DistributionalValue>(res);
 }
 
@@ -145,22 +147,22 @@ double ConditionalDV::avg_count() const
 //Given a Distribution of the Condition calculate a Joint Probability distribution
 DistributionalValuePtr ConditionalDV::get_joint_probability(DistributionalValuePtr base) const
 {
-	auto t1 = base->_value.dimensions();
-	auto t2 = _value.begin()->value.dimensions();
-	double dims = t1 + t2;
-	uint levels = base->_value.levels() + _value[0].value.levels();
-	auto size = CHist<double>::levelsToSize(levels,pow(2,dims));
-	CHist<double> res = CHist<double>(size,dims);
-	DVecSeq ivsBASE = base->_value.get_posvvec();
-
+	auto s1 = base->_value.size();
+	auto d1 = base->_value.dims();
+	auto s2 = _value.begin()->value.size();
+	auto d2 = _value.begin()->value.dims();
+	CTHist<double> res = CTHist<double>(s1*s2,d1+d2);
+	DVecSeq ivsBASE = base->_value.get_posvec();
 	//std::cout << base->to_string();
-	//std::cout << ivsBASE.size();
+	//std::cout << "ivsBase.size: " << ivsBASE.size() << std::endl;
+
+	ConditionalDVPtr remaped = remap(ivsBASE);
 
 	for (auto k1 : ivsBASE) {
-		DistributionalValuePtr uncond = get_unconditional(k1);
-		DVecSeq ivsTHIS = uncond->_value.get_posvvec();
-		//std::cout << uncond->to_string();
-		//std::cout << ivsTHIS.size();
+		DistributionalValuePtr uncond = DistributionalValue::createDV(remaped->value().get(k1));
+		DVecSeq ivsTHIS = uncond->_value.get_posvec();
+		//uncond->value().print();
+		//std::cout << "ivsThis.size: " << ivsTHIS.size() << std::endl;
 		for (auto k2 : ivsTHIS) {
 			DVec k;
 			k.insert(k.end(),k1.begin(),k1.end());
@@ -169,7 +171,12 @@ DistributionalValuePtr ConditionalDV::get_joint_probability(DistributionalValueP
 			//Res count based on base count
 			auto v1 = base->_value.get(k1);
 			auto v2 = uncond->get_mean(k2);
+			std::cout << "v1: " << v1 << std::endl;
+			std::cout << "v2: " << v2 << std::endl;
+			//std::cout << "Inserting: " << ::to_string(k) << std::endl;
 			res.insert(k,v1 * v2);
+			//res.print();
+			//std::cout << std::endl;
 		}
 	}
 	return DistributionalValue::createDV(res);
@@ -178,15 +185,18 @@ DistributionalValuePtr ConditionalDV::get_joint_probability(DistributionalValueP
 // A->C + B->C => (A,B)->C
 ConditionalDVPtr ConditionalDV::merge(ConditionalDVPtr cdv2) const
 {
-	CDVrep res;
+	if (_value.dims() != cdv2->_value.dims())
+		throw RuntimeException(TRACE_INFO,"Can't merge CDVs with different number of dimensions.");
+
+	CDVrep res = CDVrep(std::max(_value.size(),cdv2->_value.size()),_value.dims());
 	for (auto elem1 : _value)
 	{
 		for (auto elem2 : cdv2->_value)
 		{
 			DVec k;
-			k.insert(k.end(),elem1.pos,elem1.pos + _value.dimensions());
-			k.insert(k.end(),elem2.pos,elem2.pos + cdv2->_value.dimensions());
-			CHist<double> tmp = CHist<double>::merge(elem1.value,elem2.value);
+			k.insert(k.end(),elem1.pos.begin(),elem1.pos.end());
+			k.insert(k.end(),elem2.pos.begin(),elem2.pos.end());
+			CTHist<double> tmp = CTHist<double>::merge(elem1.value,elem2.value);
 			res.insert(k,tmp);
 		}
 	}
@@ -202,9 +212,9 @@ std::string ConditionalDV::to_string(const std::string& indent) const
 	for (auto elem : _value)
 	{
 		ss << indent << "{";
-		for (uint i = 0; i < _value.dimensions(); i ++)
+		for (double coord : elem.pos)
 		{
-				ss << *(elem.pos + i) << ";";
+				ss << coord << ";";
 		}
 		ss.seekp(-1,std::ios_base::end);
 		ss << "} DV: "

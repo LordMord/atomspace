@@ -38,15 +38,10 @@ using namespace opencog;
 count_t DistributionalValue::DEFAULT_K = 800.0;
 
 DistributionalValue::DistributionalValue()
-	: Value(DISTRIBUTIONAL_VALUE) , _value(15,1)
-{
-}
+	: Value(DISTRIBUTIONAL_VALUE) , _value(15,1) {}
 
-DistributionalValue::DistributionalValue(const CHist<double> &hist)
-	: Value(DISTRIBUTIONAL_VALUE) //, _value(hist)
-{
-	_value = hist;
-}
+DistributionalValue::DistributionalValue(const CTHist<double> &hist)
+	: Value(DISTRIBUTIONAL_VALUE) , _value(hist) {}
 
 //Create a DV from the Parameters of a SimpleTV
 //Not recommended as it results in a DV with only 1 singleton set
@@ -62,7 +57,7 @@ DistributionalValue::DistributionalValue(double mode,double conf)
 	_value.insert(DVec{mode},count);
 }
 
-DistributionalValuePtr DistributionalValue::createDV(const CHist<double> &hist)
+DistributionalValuePtr DistributionalValue::createDV(const CTHist<double> &hist)
 {
 	auto res = std::make_shared<const DistributionalValue>(hist);
 	return res;
@@ -79,7 +74,7 @@ DistributionalValuePtr DistributionalValue::TRUE_TV()
 	static DistributionalValuePtr instance;
 	if (instance == nullptr)
 	{
-		CHist<double> hist = CHist<double>(1,1);
+		CTHist<double> hist = CTHist<double>(1,1);
 		hist.insert(DVec{1.0},1.0);
 		instance = std::make_shared<const DistributionalValue>(hist);
 	}
@@ -90,7 +85,7 @@ DistributionalValuePtr DistributionalValue::FALSE_TV()
 	static DistributionalValuePtr instance;
 	if (instance == nullptr)
 	{
-		CHist<double> hist = CHist<double>(1,1);
+		CTHist<double> hist = CTHist<double>(1,1);
 		hist.insert(DVec{0.0},1.0);
 		instance = std::make_shared<const DistributionalValue>(hist);
 	}
@@ -102,7 +97,7 @@ DistributionalValuePtr DistributionalValue::DEFAULT_TV()
 	if (instance == nullptr)
 	{
 		//TODO: Should this have a size of 15?
-		CHist<double> hist = CHist<double>(0,1);
+		CTHist<double> hist = CTHist<double>(0,1);
 		instance = std::make_shared<const DistributionalValue>(hist);
 	}
     return instance;
@@ -119,44 +114,43 @@ void DistributionalValue::add_evidence(const DVec& pos)
 //and returns this new one ass a result
 DistributionalValuePtr DistributionalValue::merge(DistributionalValuePtr other) const
 {
-	CHist<double> hist = CHist<double>::merge(_value,other->_value);
+	CTHist<double> hist = CTHist<double>::merge(_value,other->_value);
 	return createDV(hist);
 }
 
-std::vector<double> DistributionalValue::bin_modes() const
+std::map<DVec,double> DistributionalValue::bin_modes() const
 {
-	std::vector<double> probs;
+	std::map<DVec,double> probs;
 	for (auto elem : _value)
 	{
-		probs.push_back(get_mode_for(elem.value));
+		probs[elem.pos] = get_mode_for(elem.value);
 	}
 	return probs;
 }
 
-std::vector<double> DistributionalValue::bin_means() const
+std::map<DVec,double> DistributionalValue::bin_means() const
 {
-	std::vector<double> probs;
+	std::map<DVec,double> probs;
 	for (auto elem : _value)
 	{
-		probs.push_back(get_mean_for(elem.value));
+		probs[elem.pos] = get_mean_for(elem.value);
 	}
 	return probs;
 }
 
-//Get the variance for all Keys
-std::vector<double> DistributionalValue::bin_vars() const
+std::map<DVec,double> DistributionalValue::bin_vars() const
 {
-	std::vector<double> probs;
+	std::map<DVec,double> probs;
 	for (auto elem : _value)
 	{
-		probs.push_back(get_var_for(elem.value));
+		probs[elem.pos] = get_var_for(elem.value);
 	}
 	return probs;
 }
 
 double DistributionalValue::get_mode_for(double ai) const
 {
-	return (ai - 1) / (total_count() - _value.count_bins());
+	return (ai - 1) / (total_count() - _value.elem_count());
 }
 
 double DistributionalValue::get_mean_for(double ai) const
@@ -199,14 +193,29 @@ double DistributionalValue::get_mode(const DVec &val) const
 {
 	return get_mode_for(_value.get(val));
 }
+
 double DistributionalValue::get_mean(const DVec &val) const
 {
 	return get_mean_for(_value.get(val));
 }
-double DistributionalValue::get_contained_mean(const DVec &val) const
+
+DistributionalValuePtr DistributionalValue::mirrorLinf() const
 {
-	return get_mean_for(_value.get_avg(val));
+	CTHist<double> res = _value.mirrorLinf();
+	return createDV(res);
 }
+
+//double DistributionalValue::get_contained_mean(const DVec &val) const
+//{
+//	return get_mean_for(_value.get_avg(val));
+//}
+
+DistributionalValuePtr DistributionalValue::remap(const DVecSeq &k) const
+{
+	CTHist<double> rep = _value.remap(k);
+	return createDV(rep);
+}
+
 double DistributionalValue::get_var(const DVec &val) const
 {
 	return get_var_for(_value.get(val));
@@ -218,13 +227,7 @@ std::string DistributionalValue::to_string(const std::string& indent) const
 	if (_value.size() == 0)
 		ss << "Empty DistributionalValue" << std::endl;
 
-	for (auto elem : _value)
-	{
-		ss << Node<double>::to_string(_value,elem)
-		   << " Mean: "
-		   << get_mean_for(elem.value)
-		   << std::endl;
-	}
+	ss << _value.to_string();
 	return ss.str();
 }
 

@@ -48,18 +48,12 @@ class DVFormulas
 {
 
 public:
-	//Given a NdimBin for each Dimension/Interval it contains return it's
-	//starting point(min) or ending point(max)
-	//static DVec get_key_min(const NdimBin&);
-	//static DVec get_key_max(const NdimBin&);
-
 	//Given P(X,Y) and P(X) calculate P(Y|X)
 	//using the formulae P(Y|X) = P(X,Y) / P(X)
 	static ConditionalDVPtr joint_to_cdv(DistributionalValuePtr,
 	                                     DistributionalValuePtr,
-	                                     uint);
+	                                     int);
 
-#if 0
 	//Given P(X,Y) calculate P(X) for an idx of 0
 	//                    or P(Y) for an idx of 1
 	//using the formula P(X) = sum over all y P(X,y)
@@ -73,6 +67,7 @@ public:
 	static DistributionalValuePtr disjunction(DistributionalValuePtr,
 	                                          DistributionalValuePtr);
 
+#if 0
 	static ConditionalDVPtr consequent_disjunction_elemination(ConditionalDVPtr,
 	                                                           ConditionalDVPtr);
 #endif

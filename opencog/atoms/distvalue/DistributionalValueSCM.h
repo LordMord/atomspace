@@ -48,8 +48,8 @@ protected:
 	SCM dvs_to_scm(const std::vector<DistributionalValuePtr>&);
 	SCM cdv_to_scm(const ConditionalDVPtr&);
 	SCM float_list_to_scm(const std::vector<double>&);
-	SCM dvkey_to_scm(const NdimBin&);
-	SCM dvkeyseq_to_scm(const NdimBinSeq&);
+	SCM dvec_to_scm(const DVec& v);
+	SCM dvecseq_to_scm(const DVecSeq& v);
 
 	SCM ss_new_dv(SCM, SCM);
 	SCM ss_new_dv_simple(SCM, SCM);
@@ -57,7 +57,7 @@ protected:
 	SCM ss_dv_divide(SCM,SCM,SCM);
 	SCM ss_dv_sum_joint(SCM,SCM);
 	SCM ss_dv_get_confidence(SCM);
-	SCM ss_dv_get_fom(SCM);
+	//SCM ss_dv_get_fom(SCM);
 	SCM ss_dv_conjunction(SCM,SCM);
 	SCM ss_dv_disjunction(SCM,SCM);
 	SCM ss_dv_negate(SCM);
@@ -68,19 +68,19 @@ protected:
 	SCM ss_cdv_get_unconditonals(SCM);
 	SCM ss_cdv_get_unconditonal(SCM,SCM);
 	SCM ss_cdv_get_joint(SCM,SCM);
-	SCM ss_cdv_merge(SCM,SCM);
-	SCM ss_cdv_cde(SCM,SCM);
+	//SCM ss_cdv_merge(SCM,SCM);
+	//SCM ss_cdv_cde(SCM,SCM);
 
-	Interval verify_interval(SCM, const char *, int pos=1);
-	NdimBin verify_NdimBin(SCM, const char *, int pos=1);
-	NdimBinSeq verify_NdimBinSeq(SCM, const char *, int pos=1);
+	DVec verify_DVec(SCM svalue_list, const char * subrname, int pos);
+	DVecSeq verify_DVecSeq(SCM svalue_list, const char * subrname, int pos);
 	DistributionalValuePtr verify_dv(SCM, const char *, int pos = 1);
 	std::vector<DistributionalValuePtr> verify_dv_list(SCM, const char *,
 	                                                   int pos = 1);
 	ConditionalDVPtr verify_cdv(SCM, const char *, int pos = 1);
 
-	NdimBin scm_to_NdimBin(SCM);
-	NdimBinSeq scm_to_NdimBinSeq(SCM);
+	DVec scm_to_DVec(SCM svalue_list);
+	DVecSeq scm_to_DVecSeq(SCM svalue_list);
+
 	std::string dv_to_string(const DistributionalValuePtr&);
 
 }; // class
