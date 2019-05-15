@@ -171,8 +171,8 @@ DistributionalValuePtr ConditionalDV::get_joint_probability(DistributionalValueP
 			//Res count based on base count
 			auto v1 = base->_value.get(k1);
 			auto v2 = uncond->get_mean(k2);
-			std::cout << "v1: " << v1 << std::endl;
-			std::cout << "v2: " << v2 << std::endl;
+			//std::cout << "v1: " << v1 << std::endl;
+			//std::cout << "v2: " << v2 << std::endl;
 			//std::cout << "Inserting: " << ::to_string(k) << std::endl;
 			res.insert(k,v1 * v2);
 			//res.print();

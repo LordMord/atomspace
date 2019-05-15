@@ -225,10 +225,7 @@ SCM DistributionalValueSCM::ss_new_dv(SCM sks, SCM scs)
 	auto end2 = cs.end();
 	CTHist<double> hist = CTHist<double>(ks.size(),ks[0].size());
 	for (;(it1 != end1) && (it2 != end2); ++it1, ++it2)
-	{
 		hist.insert(*it1,*it2);
-		hist.print();
-	}
 	DistributionalValuePtr dv = DistributionalValue::createDV(hist);
 	return dv_to_scm(dv);
 }
