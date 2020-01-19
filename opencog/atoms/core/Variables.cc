@@ -586,7 +586,8 @@ Variables::Variables(const Handle& vardecl, bool ordered)
 Variables::Variables(const HandleSeq& vardecls, bool ordered)
 	: _ordered(ordered)
 {
-	validate_vardecl(vardecls);
+	for (auto vardecl : vardecls)
+		validate_vardecl(vardecl);
 	init_index();
 }
 
@@ -875,7 +876,9 @@ void Variables::validate_vardecl(const Handle& hdecls)
 		// Extract the list of set of variables and make sure its as
 		// expected.
 		const HandleSeq& dset = hdecls->getOutgoingSet();
-		validate_vardecl(dset);
+		for (auto elem : dset)
+			validate_vardecl(elem);
+		//validate_vardecl(dset);
 	}
 	else if (UNQUOTE_LINK == tdecls)
 	{
@@ -1374,30 +1377,40 @@ Handle Variables::get_vardecl() const
 	return Handle(createVariableSet(std::move(vardecls)));
 }
 
-void Variables::validate_vardecl(const HandleSeq& oset)
-{
-	for (const Handle& h: oset)
-	{
-		Type t = h->get_type();
-		if (VARIABLE_NODE == t or GLOB_NODE == t)
-		{
-			varset.insert(h);
-			varseq.emplace_back(h);
-		}
-		else if (TYPED_VARIABLE_LINK == t)
-		{
-			get_vartype(h);
-		}
-		else
-		{
-			throw InvalidParamException(TRACE_INFO,
-				"Expected a VariableNode or a TypedVariableLink, got: %s"
-				"\nVariableList is %s",
-					nameserver().getTypeName(t).c_str(),
-					to_string().c_str());
-		}
-	}
-}
+//void Variables::validate_vardecl(const HandleSeq& oset)
+//{
+//	for (const Handle& h: oset)
+//	{
+//		Type t = h->get_type();
+//		if (VARIABLE_NODE == t or GLOB_NODE == t)
+//		{
+//			varset.insert(h);
+//			varseq.emplace_back(h);
+//		}
+//		else if (TYPED_VARIABLE_LINK == t)
+//		{
+//			get_vartype(h);
+//		}
+//		//XXX Hack for URE
+//		else if (UNQUOTE_LINK == t)
+//		{
+//			return;
+//		}
+//		else if (VARIABLE_SET == t)
+//		{
+//			Variables(h);
+//			varset.insert()
+//		}
+//		else
+//		{
+//			throw InvalidParamException(TRACE_INFO,
+//				"Expected a VariableNode or a TypedVariableLink, got: %s"
+//				"\nVariableList is %s",
+//					nameserver().getTypeName(t).c_str(),
+//					to_string().c_str());
+//		}
+//	}
+//}
 
 void Variables::find_variables(const Handle& body)
 {
